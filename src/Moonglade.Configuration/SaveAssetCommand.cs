@@ -31,7 +31,7 @@ public class SaveAssetCommandHandler : IRequestHandler<SaveAssetCommand>
         if (string.IsNullOrWhiteSpace(request.AssetBase64)) throw new ArgumentNullException(nameof(request.AssetBase64));
 
         var exists = await
-            _dbConnection.ExecuteScalarAsync<int>("SELECT TOP 1 1 FROM BlogAsset ba WHERE ba.Id = @assetId",
+            _dbConnection.ExecuteScalarAsync<int>("SELECT COUNT(1) FROM BlogAsset ba WHERE ba.Id = @assetId",
                 new { request.AssetId });
 
         if (exists == 0)

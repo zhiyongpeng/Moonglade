@@ -6,18 +6,17 @@ using Microsoft.ApplicationInsights.Extensibility.Implementation;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.FeatureManagement;
-using Moonglade.Data.Setup;
+using Moonglade.Data.MySql;
+using Moonglade.Data.SqlServer;
 using Moonglade.Notification.Client;
 using Moonglade.Pingback;
 using Moonglade.Syndication;
 using SixLabors.Fonts;
-using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
 using WilderMinds.MetaWeblog;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
 var info = $"App:\tMoonglade {Helper.AppVersion}\n" +
            $"Path:\t{Environment.CurrentDirectory} \n" +
@@ -32,7 +31,7 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.AddAzureWebAppDiagnostics();
-builder.Host.ConfigureAppConfiguration((hostingContext, config) =>
+builder.Host.ConfigureAppConfiguration(config =>
 {
     config.AddJsonFile("manifesticons.json", false, true);
 
@@ -45,7 +44,7 @@ builder.Host.ConfigureAppConfiguration((hostingContext, config) =>
                 .ConfigureRefresh(refresh =>
                 {
                     refresh.Register("Moonglade:Settings:Sentinel", refreshAll: true)
-                        .SetCacheExpiration(TimeSpan.FromSeconds(10));
+                           .SetCacheExpiration(TimeSpan.FromSeconds(10));
                 })
                 .UseFeatureFlags(o => o.Label = "Moonglade");
         });
@@ -76,15 +75,15 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 builder.Services.AddOptions()
-    .AddHttpContextAccessor()
-    .AddRateLimit(builder.Configuration.GetSection("IpRateLimiting"));
-builder.Services.AddFeatureManagement();
+                .AddHttpContextAccessor()
+                .AddRateLimit(builder.Configuration.GetSection("IpRateLimiting"))
+                .AddFeatureManagement();
 builder.Services.AddAzureAppConfiguration()
-    .AddApplicationInsightsTelemetry()
-    .ConfigureTelemetryModule<DependencyTrackingTelemetryModule>((module, _) =>
-    {
-        module.EnableSqlCommandTextInstrumentation = true;
-    });
+                .AddApplicationInsightsTelemetry()
+                .ConfigureTelemetryModule<DependencyTrackingTelemetryModule>((module, _) =>
+                {
+                    module.EnableSqlCommandTextInstrumentation = true;
+                });
 
 builder.Services.AddSession(options =>
 {
@@ -98,18 +97,17 @@ builder.Services.AddSession(options =>
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()))
-    .ConfigureApiBehaviorOptions(ConfigureApiBehavior.BlogApiBehavior);
-builder.Services.AddRazorPages()
-    .AddViewLocalization()
-    .AddDataAnnotationsLocalization(options =>
-    {
-        options.DataAnnotationLocalizerProvider = (_, factory) => factory.Create(typeof(SharedResource));
-    })
-    .AddRazorPagesOptions(options =>
-    {
-        options.Conventions.AuthorizeFolder("/Admin");
-        options.Conventions.AuthorizeFolder("/Settings");
-    });
+                .ConfigureApiBehaviorOptions(ConfigureApiBehavior.BlogApiBehavior);
+builder.Services.AddRazorPages().AddViewLocalization()
+                .AddDataAnnotationsLocalization(options =>
+                {
+                    options.DataAnnotationLocalizerProvider = (_, factory) => factory.Create(typeof(SharedResource));
+                })
+                .AddRazorPagesOptions(options =>
+                {
+                    options.Conventions.AuthorizeFolder("/Admin");
+                    options.Conventions.AuthorizeFolder("/Settings");
+                });
 
 // Fix Chinese character being encoded in HTML output
 builder.Services.AddSingleton(HtmlEncoder.Create(
@@ -146,93 +144,53 @@ builder.Services.AddAntiforgery(options =>
 });
 
 builder.Services.AddHealthChecks();
-builder.Services.AddTransient<RequestBodyLoggingMiddleware>();
-builder.Services.AddTransient<ResponseBodyLoggingMiddleware>();
+builder.Services.AddTransient<RequestBodyLoggingMiddleware>()
+                .AddTransient<ResponseBodyLoggingMiddleware>();
 
 // Blog Services
-builder.Services.AddPingback()
-    .AddSyndication()
-    .AddNotificationClient()
-    .AddReleaseCheckerClient()
-    .AddBlogCache()
-    .AddMetaWeblog<Moonglade.Web.MetaWeblogService>()
-    .AddScoped<ValidateCaptcha>()
-    .AddScoped<ITimeZoneResolver, BlogTimeZoneResolver>()
-    .AddBlogConfig(builder.Configuration)
-    .AddBlogAuthenticaton(builder.Configuration)
-    .AddComments(builder.Configuration)
-    .AddDataStorage(builder.Configuration.GetConnectionString("MoongladeDatabase"))
-    .AddImageStorage(builder.Configuration, options =>
-    {
-        options.ContentRootPath = builder.Environment.ContentRootPath;
-    })
-    .Configure<List<ManifestIcon>>(builder.Configuration.GetSection("ManifestIcons"));
+var blogServices = builder.Services.AddPingback()
+                .AddSyndication()
+                .AddNotificationClient()
+                .AddReleaseCheckerClient()
+                .AddBlogCache()
+                .AddMetaWeblog<Moonglade.Web.MetaWeblogService>()
+                .AddScoped<ValidateCaptcha>()
+                .AddScoped<ITimeZoneResolver, BlogTimeZoneResolver>()
+                .AddBlogConfig(builder.Configuration)
+                .AddBlogAuthenticaton(builder.Configuration)
+                .AddComments(builder.Configuration)
+                .AddImageStorage(builder.Configuration, options =>
+                {
+                    options.ContentRootPath = builder.Environment.ContentRootPath;
+                })
+                .Configure<List<ManifestIcon>>(builder.Configuration.GetSection("ManifestIcons"));
+
+//Add Data Storage
+switch (builder.Configuration.GetConnectionString("DatabaseType").ToLower())
+{
+    case "mysql":
+        {
+            blogServices.AddMySqlStorage(builder.Configuration.GetConnectionString("MoongladeDatabase"));
+        }
+        break;
+    case "sqlserver":
+    default:    //默认 sqlserver
+        {
+            blogServices.AddSqlServerStorage(builder.Configuration.GetConnectionString("MoongladeDatabase"));
+        }
+        break;
+}
 
 #endregion
 
 var app = builder.Build();
+await app.InitStartUp();
 
-#region First Run
-
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var env = services.GetRequiredService<IWebHostEnvironment>();
-
-    var dbConnection = services.GetRequiredService<IDbConnection>();
-    var setupHelper = new SetupRunner(dbConnection);
-    if (!setupHelper.TestDatabaseConnection(ex =>
-        {
-            Trace.WriteLine(ex);
-            Console.WriteLine(ex);
-        })) return;
-
-    if (setupHelper.IsFirstRun())
-    {
-        try
-        {
-            app.Logger.LogInformation("Initializing first run configuration...");
-            setupHelper.InitFirstRun();
-            app.Logger.LogInformation("Database setup successfully.");
-        }
-        catch (Exception e)
-        {
-            app.Logger.LogCritical(e, e.Message);
-        }
-    }
-
-    var mediator = services.GetRequiredService<IMediator>();
-
-    try
-    {
-        app.Logger.LogInformation("Generating site icons");
-
-        var iconData = await mediator.Send(new GetAssetDataQuery(AssetId.SiteIconBase64));
-        MemoryStreamIconGenerator.GenerateIcons(iconData, env.WebRootPath, app.Logger);
-
-        app.Logger.LogInformation($"Generated {MemoryStreamIconGenerator.SiteIconDictionary.Count} icon(s). \n{JsonSerializer.Serialize(MemoryStreamIconGenerator.SiteIconDictionary.Select(p => p.Key).OrderBy(x => x))}");
-    }
-    catch (Exception e)
-    {
-        // Non critical error, just log, do not block application start
-        app.Logger.LogError(e, e.Message);
-    }
-}
-
-#endregion
+app.Lifetime.ApplicationStopping.Register(() => { app.Logger.LogInformation("Moonglade is stopping..."); });
 
 #region Middleware
 
 app.UseForwardedHeaders();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger()
-        .UseSwaggerUI(c =>
-        {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "Moonglade API V1");
-        });
-}
 
 if (!app.Environment.IsProduction())
 {
@@ -242,11 +200,6 @@ if (!app.Environment.IsProduction())
     tc.DisableTelemetry = true;
     TelemetryDebugWriter.IsTracingDisabled = true;
 }
-
-app.Lifetime.ApplicationStopping.Register(() =>
-{
-    app.Logger.LogInformation("Moonglade is stopping...");
-});
 
 app.UseCustomCss(options => options.MaxContentLength = 10240);
 app.UseManifest(options => options.ThemeColor = "#333333");
@@ -264,13 +217,12 @@ app.UseMiddlewareForFeature<FoafMiddleware>(nameof(FeatureFlags.Foaf));
 var bc = app.Services.GetRequiredService<IBlogConfig>();
 if (bc.AdvancedSettings.EnableMetaWeblog)
 {
-    app.UseMiddleware<RSDMiddleware>()
-        .UseMetaWeblog("/metaweblog");
+    app.UseMiddleware<RSDMiddleware>().UseMetaWeblog("/metaweblog");
 }
 
 app.UseMiddleware<SiteMapMiddleware>()
-    .UseMiddleware<PoweredByMiddleware>()
-    .UseMiddleware<DNTMiddleware>();
+   .UseMiddleware<PoweredByMiddleware>()
+   .UseMiddleware<DNTMiddleware>();
 
 if (app.Configuration.GetValue<bool>("PreferAzureAppConfiguration"))
 {
@@ -279,15 +231,17 @@ if (app.Configuration.GetValue<bool>("PreferAzureAppConfiguration"))
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseRouteDebugger()
-        .UseDeveloperExceptionPage();
+    app.UseSwagger().UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Moonglade API V1");
+    });
+    app.UseRouteDebugger().UseDeveloperExceptionPage();
 }
 else
 {
     app.UseStatusCodePages(ConfigureStatusCodePages.Handler)
-        .UseExceptionHandler("/error");
-    app.UseHttpsRedirection()
-        .UseHsts();
+       .UseExceptionHandler("/error");
+    app.UseHttpsRedirection().UseHsts();
 }
 
 app.UseRequestLocalization(new RequestLocalizationOptions
@@ -316,11 +270,10 @@ app.UseSession().UseCaptchaImage(options =>
 
 app.UseIpRateLimiting();
 app.UseRouting();
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseAuthentication().UseAuthorization();
 
-app.UseMiddleware<RequestBodyLoggingMiddleware>();
-app.UseMiddleware<ResponseBodyLoggingMiddleware>();
+app.UseMiddleware<RequestBodyLoggingMiddleware>()
+   .UseMiddleware<ResponseBodyLoggingMiddleware>();
 
 app.UseEndpoints(ConfigureEndpoints.BlogEndpoints);
 
