@@ -16,9 +16,6 @@ WORKDIR /src
 COPY ./src/**/*.csproj ./
 RUN for file in $(ls *.csproj); do mkdir -p ./${file%.*}/ && mv $file ./${file%.*}/; done
 
-# zh-CN
-ENV LANG=zh_CN.UTF-8 LANGUAGE=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8
-
 RUN dotnet restore "Moonglade.Web/Moonglade.Web.csproj"
 COPY ./src .
 WORKDIR "/src/Moonglade.Web"

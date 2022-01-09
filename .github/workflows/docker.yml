@@ -21,4 +21,4 @@ jobs:
         name: zhiyongpeng/moonglade
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-        tags: "latest,v12.04.0"
+        tags: "latest,v12.05.0"
