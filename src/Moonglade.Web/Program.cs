@@ -246,7 +246,7 @@ else
 
 app.UseRequestLocalization(new RequestLocalizationOptions
 {
-    DefaultRequestCulture = new("en-US"),
+    DefaultRequestCulture = new("zh-CN"),
     SupportedCultures = cultures,
     SupportedUICultures = cultures
 });
