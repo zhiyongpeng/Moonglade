@@ -17,12 +17,8 @@ COPY ./src/**/*.csproj ./
 RUN for file in $(ls *.csproj); do mkdir -p ./${file%.*}/ && mv $file ./${file%.*}/; done
 
 # zh-CN
-COPY sources.list .
 ENV DEBIAN_FRONTEND=noninteractive
-RUN set -eux && \
-    rm /etc/apt/sources.list && \
-    mv sources.list /etc/apt/sources.list && \
-    apt-get update && \
+RUN apt-get update && \
     apt-get install -y locales tzdata xfonts-wqy && \
     locale-gen zh_CN.UTF-8 && \
     update-locale LANG=zh_CN.UTF-8 LANGUAGE=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 && \
