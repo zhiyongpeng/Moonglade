@@ -3,6 +3,7 @@
 @inject IOptions<AuthenticationSettings> _authOptions
 
 @using Moonglade.Auth
+@using Microsoft.EntityFrameworkCore.Metadata.Internal
 @{
     var currentPage = ViewContext.RouteData.Values["Page"]?.ToString();
 
@@ -150,14 +151,14 @@
     <script type="text/javascript" src="https://pzycdn.orleans.cn/twitter-bootstrap/js/bootstrap.bundle.min.js?v=1203"></script>
     @*<script src="~/lib/twitter-bootstrap/js/bootstrap.bundle.min.js" asp-append-version="true"></script>*@
 
-     <script type="text/javascript" src="https://pzycdn.orleans.cn/jquery-validate/jquery.validate.min.js?v=1203"></script>
-    <script src="~/lib/jquery-validate/jquery.validate.min.js" asp-append-version="true"></script>
+    @if (ViewBag.SkipJQueryValidation != null && !ViewBag.SkipJQueryValidation)
+    {
+        <script type="text/javascript" src="https://pzycdn.orleans.cn/jquery-validate/jquery.validate.min.js?v=1203"></script>
+        @*<script src="~/lib/jquery-validate/jquery.validate.min.js" asp-append-version="true"></script>*@
 
-     <script type="text/javascript" src="https://pzycdn.orleans.cn/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js?v=1203"></script>
-    @*<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js" asp-append-version="true"></script>*@
-
-    <script type="text/javascript" src="https://pzycdn.orleans.cn/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js?v=1203"></script>
-    @*<script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js" asp-append-version="true"></script>*@
+        <script type="text/javascript" src="https://pzycdn.orleans.cn/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js?v=1203"></script>
+        @*<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js" asp-append-version="true"></script>*@
+    }
     <environment exclude="Development">
          <script type="text/javascript" src="https://pzycdn.orleans.cn/js/app-bundle.min.js?v=1203"></script>
         @*<script src="~/js/dist/app-bundle.min.js" asp-append-version="true"></script>*@
