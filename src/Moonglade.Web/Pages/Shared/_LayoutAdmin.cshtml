@@ -31,9 +31,9 @@
         <foaf href="/foaf.xml" />
     </feature>
     <partial name="_Favicons" />
-      <link rel="stylesheet" href="https://pzycdn.orleans.cn/twitter-bootstrap/css/bootstrap.min.css?v=1203" type="text/css" media="all" />
+      <link rel="stylesheet" href="https://pzycdn.orleans.cn/lib/twitter-bootstrap/css/bootstrap.min.css?v=1203" type="text/css" media="all" />
     @*<link href="~/lib/twitter-bootstrap/css/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />*@
-    <link rel="stylesheet" href="https://pzycdn.orleans.cn/bootstrap-icons/font/bootstrap-icons.min.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="https://pzycdn.orleans.cn/lib/bootstrap-icons/font/bootstrap-icons.min.css" type="text/css" media="all" />
     @*<link href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet" />*@
     <environment exclude="Development">
           <link rel="stylesheet" href="https://pzycdn.orleans.cn/css/bundle.min.css?v=1203" type="text/css" media="all" />
@@ -49,7 +49,7 @@
     </environment>
     <link href="~/theme.css" rel="stylesheet" asp-append-version="true" />
     @await RenderSectionAsync("head", false)
-    <script type="text/javascript" src="https://pzycdn.orleans.cn/jquery/jquery.min.js?v=1203"></script>
+    <script type="text/javascript" src="https://pzycdn.orleans.cn/lib/jquery/jquery.min.js?v=1203"></script>
     @*<script src="~/lib/jquery/jquery.min.js" asp-append-version="true"></script>*@
 </head>
 <body class="admin-body bg-gray-1">
@@ -148,21 +148,21 @@
     </div>
 
     <partial name="_Toast" />
-    <script type="text/javascript" src="https://pzycdn.orleans.cn/twitter-bootstrap/js/bootstrap.bundle.min.js?v=1203"></script>
+    <script type="text/javascript" src="https://pzycdn.orleans.cn/lib/twitter-bootstrap/js/bootstrap.bundle.min.js?v=1203"></script>
     @*<script src="~/lib/twitter-bootstrap/js/bootstrap.bundle.min.js" asp-append-version="true"></script>*@
 
     @if (ViewBag.SkipJQueryValidation != null && !ViewBag.SkipJQueryValidation)
     {
-        <script type="text/javascript" src="https://pzycdn.orleans.cn/jquery-validate/jquery.validate.min.js?v=1203"></script>
+        <script type="text/javascript" src="https://pzycdn.orleans.cn/lib/jquery-validate/jquery.validate.min.js?v=1203"></script>
         @*<script src="~/lib/jquery-validate/jquery.validate.min.js" asp-append-version="true"></script>*@
 
-        <script type="text/javascript" src="https://pzycdn.orleans.cn/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js?v=1203"></script>
+        <script type="text/javascript" src="https://pzycdn.orleans.cn/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js?v=1203"></script>
         @*<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js" asp-append-version="true"></script>*@
     }
     <environment exclude="Development">
-         <script type="text/javascript" src="https://pzycdn.orleans.cn/js/app-bundle.min.js?v=1203"></script>
+         <script type="text/javascript" src="https://pzycdn.orleans.cn/js/dist/app-bundle.min.js?v=1203"></script>
         @*<script src="~/js/dist/app-bundle.min.js" asp-append-version="true"></script>*@
-        <script type="text/javascript" src="https://pzycdn.orleans.cn/js/admin-bundle.min.js?v=1208"></script>
+        <script type="text/javascript" src="https://pzycdn.orleans.cn/js/dist/admin-bundle.min.js?v=1208"></script>
         @*<script src="~/js/dist/admin-bundle.min.js" asp-append-version="true"></script>*@
     </environment>
     <environment include="Development">
