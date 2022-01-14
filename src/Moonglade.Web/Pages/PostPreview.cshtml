@@ -26,7 +26,8 @@
 }
 
 @section scripts {
-    <script src="~/js/3rd/highlight.min.js"></script>
+     <script type="text/javascript" src="https://pzycdn.orleans.cn/js/3rd/highlight.min.js"></script>
+    @*<script src="~/js/3rd/highlight.min.js"></script>*@
     <script>
         var fitImageToDevicePixelRatio = @BlogConfig.ImageSettings.FitImageToDevicePixelRatio.ToString().ToLower();
         postSlug.resizeImages();

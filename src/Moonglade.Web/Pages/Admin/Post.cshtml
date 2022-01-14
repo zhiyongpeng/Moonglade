@@ -4,11 +4,13 @@
 }
 
 @section head{
-    <link href="~/css/3rd/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://pzycdn.orleans.cn/css/3rd/dataTables.bootstrap5.min.css" type="text/css" />
+    @*<link href="~/css/3rd/dataTables.bootstrap5.min.css" rel="stylesheet" />*@
 }
 
 @section scripts{
-    <script src="~/js/3rd/datatables.min.js"></script>
+    <script type="text/javascript" src="https://pzycdn.orleans.cn/js/3rd/datatables.min.js"></script>
+    @*<script src="~/js/3rd/datatables.min.js"></script>*@
     <script>
         $(function () {
             var table = $("#posts-table").DataTable({
