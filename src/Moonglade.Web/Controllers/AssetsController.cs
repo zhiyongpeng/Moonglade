@@ -139,10 +139,16 @@ public class AssetsController : ControllerBase
     public async Task<IActionResult> UpdateSiteIcon([FromBody] string base64Img)
     {
         base64Img = base64Img.Trim();
+
         if (!Helper.TryParseBase64(base64Img, out var base64Chars))
         {
             _logger.LogWarning("Bad base64 is used when setting site icon.");
             return Conflict("Bad base64 data");
+        }
+
+        if (base64Img.Length > 8192)
+        {
+            return Conflict("Base64 data too long");
         }
 
         using var bmp = await Image.LoadAsync(new MemoryStream(base64Chars));
