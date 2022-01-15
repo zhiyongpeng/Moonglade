@@ -17,9 +17,9 @@
 }
 
 @section scripts{
-     <script type="text/javascript" src="https://pzycdn.orleans.cn/js/3rd/bs-custom-file-input.min.js"></script>
+<script type="text/javascript" src="https://pzycdn.orleans.cn/js/3rd/bs-custom-file-input.min.js"></script>
 @*<script src="~/js/3rd/bs-custom-file-input.min.js"></script>*@
- <script type="text/javascript" src="https://pzycdn.orleans.cn/lib/typeahead.js/typeahead.bundle.min.js"></script>
+<script type="text/javascript" src="https://pzycdn.orleans.cn/lib/typeahead.js/typeahead.bundle.min.js"></script>
 @*<script src="~/lib/typeahead.js/typeahead.bundle.min.js"></script>*@
     @{
         var ec = Settings.Value.Editor;
@@ -27,17 +27,17 @@
         {
             case EditorChoice.Html:
             <script type="text/javascript" src="https://pzycdn.orleans.cn/lib/tinymce/tinymce.min.js"></script>
-    //<script src="~/lib/tinymce/tinymce.min.js"></script>
+            //<script src="~/lib/tinymce/tinymce.min.js"></script>
                 break;
             case EditorChoice.Markdown:
             <script type="text/javascript" src="https://pzycdn.orleans.cn/lib/simplemde/simplemde.min.js"></script>
-    //<script src="~/lib/simplemde/simplemde.min.js"></script>
-    <script type="text/javascript" src="https://pzycdn.orleans.cn/js/3rd/inline-attachment.js"></script>
-    //<script src="~/js/3rd/inline-attachment.js"></script>
-     <script type="text/javascript" src="https://pzycdn.orleans.cn/js/3rd/codemirror-4.inline-attachment.js"></script>
-    //<script src="~/js/3rd/codemirror-4.inline-attachment.js"></script>
-     <link id="css-simplemde" href="https://pzycdn.orleans.cn/lib/simplemde/simplemde.min.css" rel="stylesheet" />
-    //<link id="css-simplemde" href="~/lib/simplemde/simplemde.min.css" rel="stylesheet" />
+            //<script src="~/lib/simplemde/simplemde.min.js"></script>
+            <script type="text/javascript" src="https://pzycdn.orleans.cn/js/3rd/inline-attachment.js"></script>
+            //<script src="~/js/3rd/inline-attachment.js"></script>
+            <script type="text/javascript" src="https://pzycdn.orleans.cn/js/3rd/codemirror-4.inline-attachment.js"></script>
+            //<script src="~/js/3rd/codemirror-4.inline-attachment.js"></script>
+            <link id="css-simplemde" href="https://pzycdn.orleans.cn/lib/simplemde/simplemde.min.css" rel="stylesheet" />
+            //<link id="css-simplemde" href="~/lib/simplemde/simplemde.min.css" rel="stylesheet" />
                 break;
         }
     }
@@ -127,7 +127,7 @@
             blogToast.error('Please select at least 1 category.');
             return;
         }
-        
+
         value["SelectedCatIds"] = selectedCatIds;
         const newValue = toMagicJson(value);
 
@@ -160,7 +160,7 @@
                         <div class="col">
                             <div class="input-group input-group-sm">
                                 <label class="input-group-text" asp-for="ViewModel.Slug">Slug</label>
-                                <input type="text" asp-for="ViewModel.Slug" class="form-control form-control-sm" placeholder="Slug" spellcheck="false" required pattern="[a-z0-9\-]+" maxlength="128"/>
+                                <input type="text" asp-for="ViewModel.Slug" class="form-control form-control-sm" placeholder="Slug" spellcheck="false" required pattern="[a-z0-9\-]+" maxlength="128" />
                             </div>
                         </div>
                         <div class="col-md-auto">
