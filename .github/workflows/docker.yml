@@ -36,9 +36,9 @@ jobs:
         password: ${{ secrets.HOST_PASSWORD }}
         port: ${{ secrets.HOST_PORT }}
         script: |
-          sudo docker stop $(docker ps --filter ancestor=${{ secrets.DOCKER_REPOSITORY }} -q)
-          sudo docker rm -f $(docker ps -a --filter ancestor=${{ secrets.DOCKER_REPOSITORY }}:latest -q)
-          sudo docker rmi -f $(docker images ${{ secrets.DOCKER_REPOSITORY }}:latest -q)
+          sudo docker stop $(sudo docker ps --filter name=pzyio-blog -q)
+          sudo docker rm -f $(sudo docker ps -a --filter name=pzyio-blog -q)
+          sudo docker rmi -f $(sudo docker images ${{ secrets.DOCKER_REPOSITORY }}:latest -q)
           sudo docker pull ${{ secrets.DOCKER_REPOSITORY }}:latest
-          sudo docker run -d --net=host ${{ secrets.RUN_ENVIRONMENT }} ${{ secrets.FILE_LINK }} --restart=always ${{ secrets.DOCKER_REPOSITORY }}:latest
+          sudo docker run -d --net=host ${{ secrets.RUN_ENVIRONMENT }} ${{ secrets.FILE_LINK }} --restart=always --name=pzyio-blog ${{ secrets.DOCKER_REPOSITORY }}:latest
 
