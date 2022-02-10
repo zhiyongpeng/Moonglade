@@ -33,7 +33,7 @@ jobs:
         name: ${{ secrets.DOCKER_REPOSITORY }}
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-        tags: "latest,v12.16.6"
+        tags: "latest,v12.17.1"
 
   deploy:
     needs: [build]
