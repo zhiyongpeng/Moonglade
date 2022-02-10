@@ -1,4 +1,4 @@
-name: Docker Build and Depoly
+name: Docker Pack and Depoly
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
      run: dotnet test --configuration Release --no-build
      working-directory: ./src
    
-  build:
+  pack:
     needs: [test]
     runs-on: ubuntu-latest
 
@@ -36,7 +36,7 @@ jobs:
         tags: "latest,v12.17.1"
 
   deploy:
-    needs: [build]
+    needs: [pack]
     runs-on: ubuntu-latest
 
     steps:
