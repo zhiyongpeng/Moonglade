@@ -116,8 +116,6 @@ public class PostController : ControllerBase
 
             if (model.IsPublished)
             {
-                _logger.LogInformation($"Trying to Ping URL for post: {postEntity.Id}");
-
                 var pubDate = postEntity.PubDateUtc.GetValueOrDefault();
 
                 var link = linkGenerator.GetUriByPage(HttpContext, "/Post", null,
@@ -131,6 +129,7 @@ public class PostController : ControllerBase
 
                 if (_blogConfig.AdvancedSettings.EnablePingbackSend)
                 {
+                    _logger.LogInformation($"Trying to Ping URL for post: {postEntity.Id}");
                     _ = Task.Run(async () => { await _pingbackSender.TrySendPingAsync(link, postEntity.PostContent); });
                 }
             }
