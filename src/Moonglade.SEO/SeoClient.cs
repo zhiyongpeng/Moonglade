@@ -23,5 +23,19 @@
                 return null;
             }
         }
+
+        public async Task<string?> SendAsync(HttpRequestMessage httpRequestMessage, CancellationToken cancellationToken)
+        {
+            var httpResponse = await _httpClient.SendAsync(httpRequestMessage, cancellationToken);
+
+            if (httpResponse.IsSuccessStatusCode)
+            {
+                return await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+            }
+            else
+            {
+                return null;
+            }
+        }
     }
 }

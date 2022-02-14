@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
@@ -82,18 +83,20 @@ namespace Moonglade.SEO
 
             var body = new
             {
-                notification.SiteUrl,
-                UrlList = new string[] { notification.PostUrl }
+                siteUrl = notification.SiteUrl,
+                url = notification.PostUrl
             };
 
-            using HttpContent httpContent = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-            httpContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+            string bingUrl = "https://ssl.bing.com/webmaster/api.svc/json/SubmitUrl?apiKey=" + _apiKey;
 
             try
             {
-                var result = await _seoClient.PostAsync(new Uri("http://ssl.bing.com​"),
-                    $"/webmaster/api.svc/json/SubmitUrlbatch?apikey={_apiKey}",
-                    httpContent, cancellationToken);
+                var postRequest = new HttpRequestMessage(HttpMethod.Post, bingUrl)
+                {
+                    Content = JsonContent.Create(body)
+                };
+
+                var result = await _seoClient.SendAsync(postRequest, cancellationToken);
 
                 if (result != null)
                 {
