@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using MemoryCache.Testing.Moq;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -13,14 +16,16 @@ namespace Moonglade.SEO.Tests
     {
         private MockRepository _mockRepository;
         private ISeoClient _mockSeoClient;
+        private IMemoryCache _memoryCache;
 
         [SetUp]
         public void SetUp()
         {
             _mockRepository = new(MockBehavior.Default);
-            var httpClient = new HttpClient();
 
+            var httpClient = new HttpClient();
             _mockSeoClient = new SeoClient(httpClient);
+            _memoryCache = Create.MockedMemoryCache();
         }
 
         [Test]
@@ -36,7 +41,7 @@ namespace Moonglade.SEO.Tests
                .Build();
 
             var handler =
-                new BaiduSubmitUrlHandler(_mockSeoClient, mockLogger.Object, configuration);
+                new BaiduSubmitUrlHandler(_mockSeoClient, mockLogger.Object, _memoryCache, configuration);
 
             await handler.Handle(
                 new SubmitUrlCommand("https://pzy.io", "https://pzy.io/post/2022/1/23/highperf-aop-aspectinjector-tutorial"),
@@ -56,7 +61,7 @@ namespace Moonglade.SEO.Tests
                .Build();
 
             var handler =
-                new BingSubmitUrlHandler(_mockSeoClient, mockLogger.Object, configuration);
+                new BingSubmitUrlHandler(_mockSeoClient, mockLogger.Object, _memoryCache, configuration);
 
             await handler.Handle(
                 new SubmitUrlCommand("https://pzy.io", "https://pzy.io/post/2022/1/23/highperf-aop-aspectinjector-tutorial"),
@@ -71,7 +76,7 @@ namespace Moonglade.SEO.Tests
             var mockConfiguration = _mockRepository.Create<IConfiguration>();
 
             var handler =
-                new BaiduSubmitUrlHandler(_mockSeoClient, mockLogger.Object, mockConfiguration.Object);
+                new BaiduSubmitUrlHandler(_mockSeoClient, mockLogger.Object, _memoryCache, mockConfiguration.Object);
 
             await handler.Handle(
                 new SubmitUrlCommand("https://pzy.io", "https://pzy.io/post/2022/1/23/highperf-aop-aspectinjector-tutorial"),
@@ -86,7 +91,7 @@ namespace Moonglade.SEO.Tests
             var mockConfiguration = _mockRepository.Create<IConfiguration>();
 
             var handler =
-                new BingSubmitUrlHandler(_mockSeoClient, mockLogger.Object, mockConfiguration.Object);
+                new BingSubmitUrlHandler(_mockSeoClient, mockLogger.Object, _memoryCache, mockConfiguration.Object);
 
             await handler.Handle(
                 new SubmitUrlCommand("https://pzy.io", "https://pzy.io/post/2022/1/23/highperf-aop-aspectinjector-tutorial"),

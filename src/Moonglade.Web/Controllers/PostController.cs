@@ -1,7 +1,9 @@
-﻿using Moonglade.Caching.Filters;
+﻿using Microsoft.Extensions.Caching.Memory;
+using Moonglade.Caching.Filters;
 using Moonglade.Core.PostFeature;
 using Moonglade.Data.Spec;
 using Moonglade.Pingback;
+using Moonglade.SEO;
 using Moonglade.Web.Attributes;
 using NUglify;
 using System.ComponentModel.DataAnnotations;
@@ -118,7 +120,8 @@ public class PostController : ControllerBase
             {
                 var pubDate = postEntity.PubDateUtc.GetValueOrDefault();
 
-                var link = linkGenerator.GetUriByPage(HttpContext, "/Post", null,
+                var siteUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}";
+                var postUrl = linkGenerator.GetUriByPage(HttpContext, "/Post", null,
                     new
                     {
                         year = pubDate.Year,
@@ -130,8 +133,10 @@ public class PostController : ControllerBase
                 if (_blogConfig.AdvancedSettings.EnablePingbackSend)
                 {
                     _logger.LogInformation($"Trying to Ping URL for post: {postEntity.Id}");
-                    _ = Task.Run(async () => { await _pingbackSender.TrySendPingAsync(link, postEntity.PostContent); });
+                    _ = Task.Run(async () => { await _pingbackSender.TrySendPingAsync(postUrl, postEntity.PostContent); });
                 }
+
+                _ = Task.Run(async () => { await _mediator.Publish(new SubmitUrlCommand(siteUrl, postUrl)); });
             }
 
             return Ok(new { PostId = postEntity.Id });
