@@ -136,7 +136,10 @@ public class PostController : ControllerBase
                     _ = Task.Run(async () => { await _pingbackSender.TrySendPingAsync(postUrl, postEntity.PostContent); });
                 }
 
-                await _mediator.Publish(new SubmitUrlCommand(siteUrl, postUrl), HttpContext.RequestAborted);
+                if (model.PostId != Guid.Empty)
+                {
+                    await _mediator.Publish(new SubmitPostCommand(model.PostId, siteUrl, postUrl), HttpContext.RequestAborted);
+                }
             }
 
             return Ok(new { PostId = postEntity.Id });
