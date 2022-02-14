@@ -5,16 +5,15 @@ using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
-using System.Text.Json;
 
 namespace Moonglade.SEO
 {
     public class BaiduSubmitUrlHandler : INotificationHandler<SubmitUrlCommand>
     {
         private readonly ILogger<BaiduSubmitUrlHandler> _logger;
-        private readonly string? _token;
         private readonly ISeoClient _seoClient;
         private readonly IMemoryCache _memoryCache;
+        private readonly IConfiguration _configuration;
 
         public BaiduSubmitUrlHandler(ISeoClient seoClient,
             ILogger<BaiduSubmitUrlHandler> logger,
@@ -24,14 +23,15 @@ namespace Moonglade.SEO
             _seoClient = seoClient;
             _logger = logger;
             _memoryCache = memoryCache;
-
-            var section = configuration.GetSection("SEO");
-            _token = section?.GetValue<string>("BaiduToken", string.Empty);
+            _configuration = configuration;
         }
 
         public Task Handle(SubmitUrlCommand notification, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrEmpty(_token))
+            var section = _configuration.GetSection("SEO");
+            var token = section?.GetValue<string>("BaiduToken", string.Empty);
+
+            if (string.IsNullOrEmpty(token))
             {
                 return Task.CompletedTask;
             }
@@ -44,7 +44,7 @@ namespace Moonglade.SEO
                 try
                 {
                     var result = await _seoClient.PostAsync(new Uri("http://data.zz.baidu.com"),
-                        $"/urls?site=pzy.io&token={_token}",
+                        $"/urls?site=pzy.io&token={token}",
                         httpContent, cancellationToken);
 
                     if (result != null)
@@ -66,7 +66,8 @@ namespace Moonglade.SEO
             }
 
             return _memoryCache.GetOrCreateAsync($"seo:{notification.PostUrl}",
-                async entry => {
+                async entry =>
+                {
                     entry.SlidingExpiration = TimeSpan.FromHours(2);
                     return await SubmitUrl();
                 });
@@ -76,9 +77,9 @@ namespace Moonglade.SEO
     public class BingSubmitUrlHandler : INotificationHandler<SubmitUrlCommand>
     {
         private readonly ILogger<BingSubmitUrlHandler> _logger;
-        private readonly string? _apiKey;
         private readonly ISeoClient _seoClient;
         private readonly IMemoryCache _memoryCache;
+        private readonly IConfiguration _configuration;
 
         public BingSubmitUrlHandler(ISeoClient seoClient,
             ILogger<BingSubmitUrlHandler> logger,
@@ -88,14 +89,15 @@ namespace Moonglade.SEO
             _seoClient = seoClient;
             _logger = logger;
             _memoryCache = memoryCache;
-
-            var section = configuration.GetSection("SEO");
-            _apiKey = section?.GetValue<string>("BingToken", string.Empty);
+            _configuration = configuration;
         }
 
         public Task Handle(SubmitUrlCommand notification, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrEmpty(_apiKey))
+            var section = _configuration.GetSection("SEO");
+            var apiKey = section?.GetValue<string>("BingToken", string.Empty);
+
+            if (string.IsNullOrEmpty(apiKey))
             {
                 return Task.CompletedTask;
             }
@@ -108,7 +110,7 @@ namespace Moonglade.SEO
                     url = notification.PostUrl
                 };
 
-                string bingUrl = "https://ssl.bing.com/webmaster/api.svc/json/SubmitUrl?apiKey=" + _apiKey;
+                string bingUrl = "https://ssl.bing.com/webmaster/api.svc/json/SubmitUrl?apiKey=" + apiKey;
 
                 try
                 {
@@ -137,8 +139,9 @@ namespace Moonglade.SEO
                 }
             }
 
-            return _memoryCache.GetOrCreateAsync($"seo:{notification.PostUrl}", 
-                async entry => {
+            return _memoryCache.GetOrCreateAsync($"seo:{notification.PostUrl}",
+                async entry =>
+                {
                     entry.SlidingExpiration = TimeSpan.FromHours(2);
                     return await SubmitUrl();
                 });

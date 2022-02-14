@@ -10,6 +10,7 @@ using Moonglade.Data.MySql;
 using Moonglade.Data.SqlServer;
 using Moonglade.Notification.Client;
 using Moonglade.Pingback;
+using Moonglade.SEO;
 using Moonglade.Syndication;
 using SixLabors.Fonts;
 using System.Data;
@@ -157,6 +158,7 @@ builder.Services.AddPingback()
                 .AddNotificationClient()
                 .AddReleaseCheckerClient()
                 .AddBlogCache()
+                .AddSEO()
                 .AddMetaWeblog<Moonglade.Web.MetaWeblogService>()
                 .AddScoped<ValidateCaptcha>()
                 .AddScoped<ITimeZoneResolver, BlogTimeZoneResolver>()
