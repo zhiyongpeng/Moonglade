@@ -2,9 +2,9 @@
   <PropertyGroup>
     <Authors>Edi Wang</Authors>
     <Company>edi.wang</Company>
-    <Copyright>(C) 2022 edi.wang@outlook.com</Copyright>
-    <AssemblyVersion>12.18.4.0</AssemblyVersion>
-    <FileVersion>12.18.4.0</FileVersion>
-    <Version>12.18.4</Version>
+    <Copyright>(C) 2022 m@pzy.io</Copyright>
+    <AssemblyVersion>12.19.0.0</AssemblyVersion>
+    <FileVersion>12.19.0.0</FileVersion>
+    <Version>12.19.0</Version>
   </PropertyGroup>
 </Project>
