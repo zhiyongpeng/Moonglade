@@ -4,26 +4,12 @@ using Moonglade.Data.Infrastructure;
 
 namespace Moonglade.FriendLink;
 
-public record GetAllLinksQuery : IRequest<IReadOnlyList<Link>>;
+public record GetAllLinksQuery : IRequest<IReadOnlyList<FriendLinkEntity>>;
 
-public class GetAllLinksQueryHandler : IRequestHandler<GetAllLinksQuery, IReadOnlyList<Link>>
+public class GetAllLinksQueryHandler(IRepository<FriendLinkEntity> repo) : IRequestHandler<GetAllLinksQuery, IReadOnlyList<FriendLinkEntity>>
 {
-    private readonly IRepository<FriendLinkEntity> _friendlinkRepo;
-
-    public GetAllLinksQueryHandler(IRepository<FriendLinkEntity> friendlinkRepo)
+    public Task<IReadOnlyList<FriendLinkEntity>> Handle(GetAllLinksQuery request, CancellationToken ct)
     {
-        _friendlinkRepo = friendlinkRepo;
-    }
-
-    public Task<IReadOnlyList<Link>> Handle(GetAllLinksQuery request, CancellationToken cancellationToken)
-    {
-        var data = _friendlinkRepo.SelectAsync(f => new Link
-        {
-            Id = f.Id,
-            LinkUrl = f.LinkUrl,
-            Title = f.Title
-        });
-
-        return data;
+        return repo.ListAsync(ct);
     }
 }

@@ -1,10 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Moonglade.Data.Entities;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Moonglade.Data;
 
-[ExcludeFromCodeCoverage]
 public class Seed
 {
     public static async Task SeedAsync(BlogDbContext dbContext, ILogger logger, int retry = 0)
@@ -13,18 +11,15 @@ public class Seed
 
         try
         {
-            await dbContext.BlogConfiguration.AddRangeAsync(GetBlogConfiguration());
             await dbContext.LocalAccount.AddRangeAsync(GetLocalAccounts());
             await dbContext.BlogTheme.AddRangeAsync(GetThemes());
             await dbContext.Category.AddRangeAsync(GetCategories());
             await dbContext.Tag.AddRangeAsync(GetTags());
             await dbContext.FriendLink.AddRangeAsync(GetFriendLinks());
-            await dbContext.Menu.AddRangeAsync(GetMenus());
             await dbContext.CustomPage.AddRangeAsync(GetPages());
 
             // Add example post
-            var content =
-                "Moonglade is the new blog system for https://edi.wang. It is a complete rewrite of the old system using .NET 6 and runs on Microsoft Azure.";
+            var content = "Moonglade is the blog system for https://edi.wang. Powered by .NET 8 and runs on Microsoft Azure, the best cloud on the planet.";
 
             var post = new PostEntity
             {
@@ -44,11 +39,6 @@ public class Seed
                 ContentLanguageCode = "en-us",
                 HashCheckSum = -1688639577,
                 IsOriginal = true,
-                PostExtension = new()
-                {
-                    Hits = 1024,
-                    Likes = 512
-                },
                 Tags = dbContext.Tag.ToList(),
                 PostCategory = dbContext.PostCategory.ToList()
             };
@@ -69,65 +59,8 @@ public class Seed
         }
     }
 
-    private static IEnumerable<BlogConfigurationEntity> GetBlogConfiguration()
-    {
-        return new List<BlogConfigurationEntity>
-        {
-            new()
-            {
-                Id = 1,
-                CfgKey = "ContentSettings",
-                CfgValue = "{\"EnableComments\":true,\"RequireCommentReview\":true,\"EnableWordFilter\":false,\"PostListPageSize\":10,\"HotTagAmount\":10,\"DisharmonyWords\":\"fuck|shit\",\"ShowCalloutSection\":false,\"CalloutSectionHtmlPitch\":\"\"}",
-                LastModifiedTimeUtc = DateTime.UtcNow
-            },
-            new()
-            {
-                Id = 2,
-                CfgKey = "NotificationSettings",
-                CfgValue = "{\"EnableEmailSending\":false,\"EnableSsl\":true,\"SendEmailOnCommentReply\":true,\"SendEmailOnNewComment\":true,\"SmtpServerPort\":587,\"AdminEmail\":\"\",\"EmailDisplayName\":\"Moonglade\",\"SmtpPassword\":\"\",\"SmtpServer\":\"\",\"SmtpUserName\":\"\",\"BannedMailDomain\":\"\"}",
-                LastModifiedTimeUtc = DateTime.UtcNow
-            },
-            new()
-            {
-                Id = 3,
-                CfgKey = "FeedSettings",
-                CfgValue = "{\"RssItemCount\":20,\"RssCopyright\":\"(c) {year} Moonglade\",\"RssDescription\":\"Latest posts from Moonglade\",\"RssTitle\":\"Moonglade\",\"AuthorName\":\"Admin\",\"UseFullContent\":false}",
-                LastModifiedTimeUtc = DateTime.UtcNow
-            },
-            new()
-            {
-                Id = 4,
-                CfgKey = "GeneralSettings",
-                CfgValue = "{\"OwnerName\":\"Admin\",\"OwnerEmail\":\"admin@edi.wang\",\"Description\":\"Moonglade Admin\",\"ShortDescription\":\"Moonglade Admin\",\"AvatarBase64\":\"\",\"SiteTitle\":\"Moonglade\",\"LogoText\":\"moonglade\",\"MetaKeyword\":\"moonglade\",\"MetaDescription\":\"Just another .NET blog system\",\"Copyright\":\"[c] 2022\",\"SideBarCustomizedHtmlPitch\":\"\",\"FooterCustomizedHtmlPitch\":\"\",\"UserTimeZoneBaseUtcOffset\":\"08:00:00\",\"TimeZoneId\":\"China Standard Time\",\"AutoDarkLightTheme\":true,\"ThemeId\":1}",
-                LastModifiedTimeUtc = DateTime.UtcNow
-            },
-            new()
-            {
-                Id = 5,
-                CfgKey = "ImageSettings",
-                CfgValue = "{\"IsWatermarkEnabled\":true,\"KeepOriginImage\":false,\"WatermarkFontSize\":20,\"WatermarkText\":\"Moonglade\",\"UseFriendlyNotFoundImage\":true}",
-                LastModifiedTimeUtc = DateTime.UtcNow
-            },
-            new()
-            {
-                Id = 6,
-                CfgKey = "AdvancedSettings",
-                CfgValue = "{\"DNSPrefetchEndpoint\":\"\",\"EnableOpenGraph\":true,\"EnablePingBackSend\":true,\"EnablePingBackReceive\":true,\"EnableOpenSearch\":true,\"WarnExternalLink\":true,\"AllowScriptsInPage\":false,\"ShowAdminLoginButton\":false,\"EnablePostRawEndpoint\":true}",
-                LastModifiedTimeUtc = DateTime.UtcNow
-            },
-            new()
-            {
-                Id = 7,
-                CfgKey = "CustomStyleSheetSettings",
-                CfgValue = "{\"EnableCustomCss\":false,\"CssCode\":\"\"}",
-                LastModifiedTimeUtc = DateTime.UtcNow
-            }
-        };
-    }
-
-    private static IEnumerable<LocalAccountEntity> GetLocalAccounts()
-    {
-        return new List<LocalAccountEntity>
+    private static IEnumerable<LocalAccountEntity> GetLocalAccounts() =>
+        new List<LocalAccountEntity>
         {
             new()
             {
@@ -137,11 +70,9 @@ public class Seed
                 CreateTimeUtc = DateTime.UtcNow
             }
         };
-    }
 
-    private static IEnumerable<BlogThemeEntity> GetThemes()
-    {
-        return new List<BlogThemeEntity>
+    private static IEnumerable<BlogThemeEntity> GetThemes() =>
+        new List<BlogThemeEntity>
         {
             new ()
             {
@@ -176,11 +107,9 @@ public class Seed
                 ThemeName = "Metal Blue", CssRules = "{\"--accent-color1\": \"#4E5967\",\"--accent-color2\": \"#333942\",\"--accent-color3\": \"#6e7c8e\"}", ThemeType = 0
             }
         };
-    }
 
-    private static IEnumerable<CategoryEntity> GetCategories()
-    {
-        return new List<CategoryEntity>
+    private static IEnumerable<CategoryEntity> GetCategories() =>
+        new List<CategoryEntity>
         {
             new()
             {
@@ -190,20 +119,16 @@ public class Seed
                 RouteName = "default"
             }
         };
-    }
 
-    private static IEnumerable<TagEntity> GetTags()
-    {
-        return new List<TagEntity>
+    private static IEnumerable<TagEntity> GetTags() =>
+        new List<TagEntity>
         {
             new() { DisplayName = "Moonglade", NormalizedName = "moonglade" },
             new() { DisplayName = ".NET", NormalizedName = "dot-net" }
         };
-    }
 
-    private static IEnumerable<FriendLinkEntity> GetFriendLinks()
-    {
-        return new List<FriendLinkEntity>
+    private static IEnumerable<FriendLinkEntity> GetFriendLinks() =>
+        new List<FriendLinkEntity>
         {
             new()
             {
@@ -212,27 +137,9 @@ public class Seed
                 LinkUrl = "https://edi.wang"
             }
         };
-    }
 
-    private static IEnumerable<MenuEntity> GetMenus()
-    {
-        return new List<MenuEntity>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                DisplayOrder = 0,
-                IsOpenInNewTab = false,
-                Icon = "icon-star-full",
-                Title = "About",
-                Url = "/page/about"
-            }
-        };
-    }
-
-    private static IEnumerable<PageEntity> GetPages()
-    {
-        return new List<PageEntity>
+    private static IEnumerable<PageEntity> GetPages() =>
+        new List<PageEntity>
         {
             new()
             {
@@ -247,5 +154,4 @@ public class Seed
                 UpdateTimeUtc = DateTime.UtcNow
             }
         };
-    }
 }

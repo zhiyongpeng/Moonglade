@@ -1,39 +1,91 @@
-# ---------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 # Quick Start deployment script for running Moonglade on Microsoft Azure
 # Author: Edi Wang
-# ---------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 # You need to install Azure CLI and login to Azure before running this script.
 # To install Azure CLI, please run:
 # Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'
 # Reference: https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest
 
 param(
-    $subscriptionName = "Microsoft MVP", 
-    $regionName = "East Asia", 
-    [bool] $useLinuxPlanWithDocker = 1, 
-    [bool] $createCDN = 0
+    [bool] $useLinuxPlanWithDocker = 1
 )
+
+function Get-UrlStatusCode([string] $Url) {
+    try {
+        [System.Net.WebRequest]::Create($Url).GetResponse().StatusCode
+    }
+    catch [Net.WebException] {
+        [int]$_.Exception.Response.StatusCode
+    }
+}
+
+[Console]::ResetColor()
+# az login --use-device-code
+$output = az account show -o json | ConvertFrom-Json
+$subscriptionList = az account list -o json | ConvertFrom-Json 
+$subscriptionList | Format-Table name, id, tenantId -AutoSize
+
+# Get subscription id
+
+$subscriptionName = $output.name
+Write-Host "Currently logged in to subscription """$output.name.Trim()""" in tenant " $output.tenantId
+$subscriptionName = Read-Host "Enter subscription Id ("$output.id")"
+$subscriptionName = $subscriptionName.Trim()
+if ([string]::IsNullOrWhiteSpace($subscriptionName)) {
+    $subscriptionName = $output.id
+}
+else {
+    # az account set --subscription $subscriptionName
+    Write-Host "Changed to subscription ("$subscriptionName")"
+}
+
+# Get region name
+
+$regionName = Read-Host "Enter region name (default: East Asia)"
+if ([string]::IsNullOrWhiteSpace($regionName)) {
+    $regionName = "East Asia"
+}
+else {
+    $regionName = $regionName.Trim()
+}
+
+while ($true) {
+    $webAppName = Read-Host -Prompt "Enter webapp name"
+    $webAppName = $webAppName.Trim()
+    $keywords = @("xbox", "windows", "login", "microsoft")
+    if ($keywords -contains $webAppName.ToLower()) {
+        Write-Host "Webapp name cannot have keywords xbox, windows, login, microsoft"
+        continue
+    }
+    # Create the request
+    $HTTP_Status = Get-UrlStatusCode('https://' + $webAppName + '.azurewebsites.net')
+    if ($HTTP_Status -eq 0) {
+        break
+    }
+    else {
+        Write-Host "Webapp name taken"
+    }
+}
 
 # Start script
 $rndNumber = Get-Random -Minimum 100 -Maximum 999
 $rsgName = "moongladersg$rndNumber"
-$webAppName = "moongladeweb$rndNumber"
+$dockerImageName = "ediwang/moonglade"
 $aspName = "moongladeplan$rndNumber"
 $storageAccountName = "moongladestorage$rndNumber"
 $storageContainerName = "moongladeimages$rndNumber"
 $sqlServerUsername = "moonglade"
 $sqlServerName = "moongladesql$rndNumber"
 $sqlDatabaseName = "moongladedb$rndNumber"
-$cdnProfileName = "moongladecdn$rndNumber"
-$cdnEndpointName = "moongladecep$rndNumber"
 
 function Get-RandomCharacters($length, $characters) {
     $random = 1..$length | ForEach-Object { Get-Random -Maximum $characters.length }
-    $private:ofs=""
+    $private:ofs = ""
     return [String]$characters[$random]
 }
  
-function Scramble-String([string]$inputString){     
+function Scramble-String([string]$inputString) {     
     $characterArray = $inputString.ToCharArray()   
     $scrambledStringArray = $characterArray | Get-Random -Count $characterArray.Length     
     $outputString = -join $scrambledStringArray
@@ -67,9 +119,6 @@ Write-Host "Your Moonglade will be deployed to [$rsgName] in [$regionName] under
 if ($useLinuxPlanWithDocker) {
     Write-Host "+ Linux App Service Plan with Docker" -ForegroundColor Cyan
 }
-if ($createCDN) {
-    Write-Host "+ CDN (10 minutes to propagate)" -ForegroundColor Cyan
-}
 
 Read-Host -Prompt "Press [ENTER] to continue, [CTRL + C] to cancel"
 
@@ -84,71 +133,16 @@ if ($rsgExists -eq 'false') {
     $echo = az group create -l $regionName -n $rsgName
 }
 
-Write-Host "Deploying App Service..." -ForegroundColor Green
+Write-Host "Deploying App Service Plan..." -ForegroundColor Green
 # App Service Plan
 $planCheck = az appservice plan list --query "[?name=='$aspName']" | ConvertFrom-Json
 $planExists = $planCheck.Length -gt 0
 if (!$planExists) {
-    Write-Host "Creating App Service Plan"
     if ($useLinuxPlanWithDocker) {
         $echo = az appservice plan create -n $aspName -g $rsgName --is-linux --sku S1 --location $regionName
     }
     else {
         $echo = az appservice plan create -n $aspName -g $rsgName --sku S1 --location $regionName
-    }
-}
-
-# Web App
-$appCheck = az webapp list --query "[?name=='$webAppName']" | ConvertFrom-Json
-$appExists = $appCheck.Length -gt 0
-if (!$appExists) {
-    Write-Host "Creating Web App"
-    if ($useLinuxPlanWithDocker) {
-        Write-Host "Using Linux Plan with Docker image from 'ediwang/moonglade', this deployment will be ready to run."
-        $echo = az webapp create -g $rsgName -p $aspName -n $webAppName --deployment-container-image-name ediwang/moonglade
-    }
-    else {
-        Write-Host "Using Windows Plan with deployment from GitHub"
-        $echo = az webapp create -g $rsgName -p $aspName -n $webAppName --runtime "DOTNET |6.0"
-    }
-    $echo = az webapp config set -g $rsgName -n $webAppName --always-on true --use-32bit-worker-process false --http20-enabled true
-}
-
-$createdApp = az webapp list --query "[?name=='$webAppName']" | ConvertFrom-Json
-$createdExists = $createdApp.Length -gt 0
-if ($createdExists) {
-    $webAppUrl = "https://" + $createdApp.defaultHostName
-    Write-Host "Web App URL: $webAppUrl"
-}
-
-# Storage Account
-Write-Host "Deploying Storage..." -ForegroundColor Green
-$storageAccountCheck = az storage account list --query "[?name=='$storageAccountName']" | ConvertFrom-Json
-$storageAccountExists = $storageAccountCheck.Length -gt 0
-if (!$storageAccountExists) {
-    Write-Host "Creating Storage Account"
-    $echo = az storage account create --name $storageAccountName --resource-group $rsgName --location $regionName --sku Standard_LRS --kind StorageV2
-}
-
-$storageConn = az storage account show-connection-string -g $rsgName -n $storageAccountName | ConvertFrom-Json
-$storageContainerExists = az storage container exists --name $storageContainerName --connection-string $storageConn.connectionString | ConvertFrom-Json
-if (!$storageContainerExists.exists) {
-    Write-Host "Creating storage container"
-    $echo = az storage container create --name $storageContainerName --connection-string $storageConn.connectionString --public-access container
-}
-
-if ($createCDN) {
-    # CDN
-    Write-Host "Deploying CDN..." -ForegroundColor Green
-    $cdnProfileCheck = az cdn profile list -g $rsgName --query "[?name=='$cdnProfileName']" | ConvertFrom-Json
-    $cdnProfileExists = $cdnProfileCheck.Length -gt 0
-    if (!$cdnProfileExists) {
-        Write-Host "Creating CDN Profile"
-        $echo = az cdn profile create --name $cdnProfileName --resource-group $rsgName --location $regionName --sku Standard_Microsoft
-
-        Write-Host "Creating CDN Endpoint"
-        $storageOrigion = "$storageAccountName.blob.core.windows.net"
-        $echo = az cdn endpoint create -g $rsgName -n $cdnEndpointName --profile-name $cdnProfileName --origin $storageOrigion --origin-host-header $storageOrigion --enable-compression
     }
 }
 
@@ -173,6 +167,45 @@ if (!$sqlDbExists) {
     Write-Host "SQL Server Password: $sqlServerPassword" -ForegroundColor Yellow
 }
 
+# Storage Account
+Write-Host "Deploying Storage..." -ForegroundColor Green
+$storageAccountCheck = az storage account list --query "[?name=='$storageAccountName']" | ConvertFrom-Json
+$storageAccountExists = $storageAccountCheck.Length -gt 0
+if (!$storageAccountExists) {
+    Write-Host "Creating Storage Account"
+    $echo = az storage account create --name $storageAccountName --resource-group $rsgName --location $regionName --sku Standard_LRS --kind StorageV2 --allow-blob-public-access true
+}
+
+$storageConn = az storage account show-connection-string -g $rsgName -n $storageAccountName | ConvertFrom-Json
+$storageContainerExists = az storage container exists --name $storageContainerName --connection-string $storageConn.connectionString | ConvertFrom-Json
+if (!$storageContainerExists.exists) {
+    Write-Host "Creating storage container"
+    $echo = az storage container create --name $storageContainerName --connection-string $storageConn.connectionString --public-access container
+}
+
+# Web App
+$appCheck = az webapp list --query "[?name=='$webAppName']" | ConvertFrom-Json
+$appExists = $appCheck.Length -gt 0
+if (!$appExists) {
+    Write-Host "Creating Web App"
+    if ($useLinuxPlanWithDocker) {
+        Write-Host "Using Linux Plan with Docker image from '$dockerImageName', this deployment will be ready to run."
+        $echo = az webapp create -g $rsgName -p $aspName -n $webAppName --deployment-container-image-name $dockerImageName
+    }
+    else {
+        Write-Host "Using Windows Plan with deployment from GitHub"
+        $echo = az webapp create -g $rsgName -p $aspName -n $webAppName --runtime "DOTNET |8.0"
+    }
+    $echo = az webapp config set -g $rsgName -n $webAppName --always-on true --use-32bit-worker-process false --http20-enabled true
+}
+
+$createdApp = az webapp list --query "[?name=='$webAppName']" | ConvertFrom-Json
+$createdExists = $createdApp.Length -gt 0
+if ($createdExists) {
+    $webAppUrl = "https://" + $createdApp.defaultHostName
+    Write-Host "Web App URL: $webAppUrl"
+}
+
 # Configuration Update
 Write-Host "Updating Configuration" -ForegroundColor Green
 
@@ -187,6 +220,8 @@ if ($useLinuxPlanWithDocker) {
     $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage__Provider=azurestorage
     $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage__AzureStorageSettings__ConnectionString=$scon
     $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage__AzureStorageSettings__ContainerName=$storageContainerName
+    $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ForwardedHeaders__UseForwardedHeaders=true
+    $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
 }
 else {
     $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage:Provider=azurestorage
@@ -194,23 +229,17 @@ else {
     $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage:AzureStorageSettings:ContainerName=$storageContainerName
 }
 
-if ($createCDN) {
-    #Write-Host "Configuring CDN endpoint for Image Storage"
-    #if ($useLinuxPlanWithDocker){
-    #    $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage__CDNSettings__EnableCDNRedirect=true
-    #    $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage__CDNSettings__CDNEndpoint="https://#$cdnEndpointName.azureedge.net/$storageContainerName"
-    #}
-    #else{
-    #    $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage:CDNSettings:EnableCDNRedirect=true
-    #    $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage:CDNSettings:CDNEndpoint="https://#$cdnEndpointName.azureedge.net/$storageContainerName"
-    #}
-    
-    Write-Host "It can take up to 10 minutes for endpoint '$cdnEndpointName.azureedge.net' to propagate, after that, please set CDN endpoint to 'https://#$cdnEndpointName.azureedge.net/$storageContainerName' in blog admin settings." -ForegroundColor Yellow
+if (!$useLinuxPlanWithDocker) {
+    Write-Host "Pulling source code and run build on Azure (this takes time, please wait)..."
+    $echo = az webapp deployment source config --branch release --manual-integration --name $webAppName --repo-url https://github.com/EdiWang/Moonglade --resource-group $rsgName
 }
 
-if (!$useLinuxPlanWithDocker){
-    Write-Host "Pulling source code and run build on Azure (this takes time, please wait)..."
-    $echo = az webapp deployment source config --branch master --manual-integration --name $webAppName --repo-url https://github.com/EdiWang/Moonglade --resource-group $rsgName
+az webapp restart --name $webAppName --resource-group $rsgName
+
+# Container warm up
+if ($useLinuxPlanWithDocker) {
+    Write-Host "Warming up the container..."
+    Start-Sleep -Seconds 20
 }
 
 Read-Host -Prompt "Setup is done, you should be able to run Moonglade on '$webAppUrl' now, press [ENTER] to exit."

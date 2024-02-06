@@ -1,4 +1,4 @@
-﻿using Moonglade.Caching;
+﻿using Edi.CacheAside.InMemory;
 using Moonglade.Data;
 
 namespace Moonglade.Core.CategoryFeature;
@@ -8,28 +8,19 @@ public class UpdateCategoryCommand : CreateCategoryCommand, IRequest<OperationCo
     public Guid Id { get; set; }
 }
 
-public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryCommand, OperationCode>
+public class UpdateCategoryCommandHandler(IRepository<CategoryEntity> repo, ICacheAside cache) : IRequestHandler<UpdateCategoryCommand, OperationCode>
 {
-    private readonly IRepository<CategoryEntity> _catRepo;
-    private readonly IBlogCache _cache;
-
-    public UpdateCategoryCommandHandler(IRepository<CategoryEntity> catRepo, IBlogCache cache)
+    public async Task<OperationCode> Handle(UpdateCategoryCommand request, CancellationToken ct)
     {
-        _catRepo = catRepo;
-        _cache = cache;
-    }
-
-    public async Task<OperationCode> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
-    {
-        var cat = await _catRepo.GetAsync(request.Id);
+        var cat = await repo.GetAsync(request.Id, ct);
         if (cat is null) return OperationCode.ObjectNotFound;
 
         cat.RouteName = request.RouteName.Trim();
         cat.DisplayName = request.DisplayName.Trim();
         cat.Note = request.Note?.Trim();
 
-        await _catRepo.UpdateAsync(cat);
-        _cache.Remove(CacheDivision.General, "allcats");
+        await repo.UpdateAsync(cat, ct);
+        cache.Remove(BlogCachePartition.General.ToString(), "allcats");
 
         return OperationCode.Done;
     }

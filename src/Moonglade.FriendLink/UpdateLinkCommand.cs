@@ -10,31 +10,23 @@ public class UpdateLinkCommand : AddLinkCommand
     public Guid Id { get; set; }
 }
 
-public class UpdateLinkCommandHandler : IRequestHandler<UpdateLinkCommand>
+public class UpdateLinkCommandHandler(IRepository<FriendLinkEntity> repo) : IRequestHandler<UpdateLinkCommand>
 {
-    private readonly IRepository<FriendLinkEntity> _friendlinkRepo;
-
-    public UpdateLinkCommandHandler(IRepository<FriendLinkEntity> friendlinkRepo)
-    {
-        _friendlinkRepo = friendlinkRepo;
-    }
-
-    public async Task<Unit> Handle(UpdateLinkCommand request, CancellationToken cancellationToken)
+    public async Task Handle(UpdateLinkCommand request, CancellationToken ct)
     {
         if (!Uri.IsWellFormedUriString(request.LinkUrl, UriKind.Absolute))
         {
             throw new InvalidOperationException($"{nameof(request.LinkUrl)} is not a valid url.");
         }
 
-        var link = await _friendlinkRepo.GetAsync(request.Id);
+        var link = await repo.GetAsync(request.Id, ct);
         if (link is not null)
         {
             link.Title = request.Title;
             link.LinkUrl = Helper.SterilizeLink(request.LinkUrl);
+            link.Rank = request.Rank;
 
-            await _friendlinkRepo.UpdateAsync(link);
+            await repo.UpdateAsync(link, ct);
         }
-
-        return Unit.Value;
     }
 }

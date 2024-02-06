@@ -1,15 +1,30 @@
 ﻿using Markdig;
 using NUglify;
+using System.Text.RegularExpressions;
 
 namespace Moonglade.Utils;
 
 public static class ContentProcessor
 {
-    public static string GetPostAbstract(string rawContent, int wordCount, bool useMarkdown = false)
+    public static string ReplaceCDNEndpointToImgTags(this string html, string endpoint)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return html;
+
+        endpoint = endpoint.TrimEnd('/');
+        var imgSrcRegex = new Regex("<img.+?(src)=[\"'](.+?)[\"'].+?>");
+        var newStr = imgSrcRegex.Replace(html,
+            match => match.Value.Contains("src=\"/image/")
+                ? match.Value.Replace("/image/", $"{endpoint}/")
+                : match.Value);
+
+        return newStr;
+    }
+
+    public static string GetPostAbstract(string content, int wordCount, bool useMarkdown = false)
     {
         var plainText = useMarkdown ?
-            MarkdownToContent(rawContent, MarkdownConvertType.Text) :
-            RemoveTags(rawContent);
+            MarkdownToContent(content, MarkdownConvertType.Text) :
+            RemoveTags(content);
 
         var result = plainText.Ellipsize(wordCount);
         return result;

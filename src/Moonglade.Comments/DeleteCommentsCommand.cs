@@ -7,39 +7,23 @@ namespace Moonglade.Comments;
 
 public record DeleteCommentsCommand(Guid[] Ids) : IRequest;
 
-public class DeleteCommentsCommandHandler : IRequestHandler<DeleteCommentsCommand>
+public class DeleteCommentsCommandHandler(IRepository<CommentEntity> commentRepo, IRepository<CommentReplyEntity> commentReplyRepo) : IRequestHandler<DeleteCommentsCommand>
 {
-    private readonly IRepository<CommentEntity> _commentRepo;
-    private readonly IRepository<CommentReplyEntity> _commentReplyRepo;
-
-    public DeleteCommentsCommandHandler(IRepository<CommentEntity> commentRepo, IRepository<CommentReplyEntity> commentReplyRepo)
+    public async Task Handle(DeleteCommentsCommand request, CancellationToken ct)
     {
-        _commentRepo = commentRepo;
-        _commentReplyRepo = commentReplyRepo;
-    }
-
-    public async Task<Unit> Handle(DeleteCommentsCommand request, CancellationToken cancellationToken)
-    {
-        if (request.Ids is null || !request.Ids.Any())
-        {
-            throw new ArgumentNullException(nameof(request.Ids));
-        }
-
         var spec = new CommentSpec(request.Ids);
-        var comments = await _commentRepo.GetAsync(spec);
+        var comments = await commentRepo.ListAsync(spec);
         foreach (var cmt in comments)
         {
             // 1. Delete all replies
-            var cReplies = await _commentReplyRepo.GetAsync(new CommentReplySpec(cmt.Id));
+            var cReplies = await commentReplyRepo.ListAsync(new CommentReplySpec(cmt.Id));
             if (cReplies.Any())
             {
-                await _commentReplyRepo.DeleteAsync(cReplies);
+                await commentReplyRepo.DeleteAsync(cReplies, ct);
             }
 
             // 2. Delete comment itself
-            await _commentRepo.DeleteAsync(cmt);
+            await commentRepo.DeleteAsync(cmt, ct);
         }
-
-        return Unit.Value;
     }
 }

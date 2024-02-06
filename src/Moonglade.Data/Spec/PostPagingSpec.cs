@@ -11,8 +11,8 @@ public sealed class PostPagingSpec : BaseSpecification<PostEntity>
     {
         var startRow = (pageIndex - 1) * pageSize;
 
-        ApplyPaging(startRow, pageSize);
         ApplyOrderByDescending(p => p.PubDateUtc);
+        ApplyPaging(startRow, pageSize);
     }
 
     public PostPagingSpec(PostStatus postStatus, string keyword, int pageSize, int offset)

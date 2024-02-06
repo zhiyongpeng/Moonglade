@@ -1,21 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Moonglade.ImageStorage.Providers;
 
-public class FileSystemImageStorage : IBlogImageStorage
+public class FileSystemImageStorage(FileSystemImageConfiguration imgConfig) : IBlogImageStorage
 {
     public string Name => nameof(FileSystemImageStorage);
 
-    private readonly ILogger<FileSystemImageStorage> _logger;
-
-    private readonly string _path;
-
-    public FileSystemImageStorage(ILogger<FileSystemImageStorage> logger, FileSystemImageConfiguration imgConfig)
-    {
-        _logger = logger;
-        _path = imgConfig.Path;
-    }
+    private readonly string _path = imgConfig.Path;
 
     public async Task<ImageInfo> GetAsync(string fileName)
     {

@@ -2,24 +2,17 @@
 
 public record ListPageSegmentQuery : IRequest<IReadOnlyList<PageSegment>>;
 
-public class ListPageSegmentQueryHandler : IRequestHandler<ListPageSegmentQuery, IReadOnlyList<PageSegment>>
+public class ListPageSegmentQueryHandler(IRepository<PageEntity> repo) : IRequestHandler<ListPageSegmentQuery, IReadOnlyList<PageSegment>>
 {
-    private readonly IRepository<PageEntity> _pageRepo;
-
-    public ListPageSegmentQueryHandler(IRepository<PageEntity> pageRepo)
+    public Task<IReadOnlyList<PageSegment>> Handle(ListPageSegmentQuery request, CancellationToken ct)
     {
-        _pageRepo = pageRepo;
-    }
-
-    public Task<IReadOnlyList<PageSegment>> Handle(ListPageSegmentQuery request, CancellationToken cancellationToken)
-    {
-        return _pageRepo.SelectAsync(page => new PageSegment
+        return repo.SelectAsync(page => new PageSegment
         {
             Id = page.Id,
             CreateTimeUtc = page.CreateTimeUtc,
             Slug = page.Slug,
             Title = page.Title,
             IsPublished = page.IsPublished
-        });
+        }, ct);
     }
 }

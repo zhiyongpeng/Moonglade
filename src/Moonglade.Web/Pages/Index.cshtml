@@ -3,18 +3,21 @@
 
 @{
     ViewBag.TitlePrefix = null;
+    ViewBag.BodyClass = "body-home-index bg-gray-1";
     ViewBag.ActionName = "Index";
 }
 
-<h3>
-    <a class="float-end d-none d-md-block" asp-controller="Subscription" asp-action="Rss" target="_blank" title="@Localizer["Subscribe Recent 20 Posts"]">
+<h3 class="d-flex align-items-center mb-4">
+    <span>
+        @SharedLocalizer["All Posts"]
+    </span>
+    
+    <span class="flex-spacer"></span>
+    
+    <a class="d-none d-md-block" asp-controller="Subscription" asp-action="Rss" target="_blank" title="@SharedLocalizer["Subscribe recent posts"]">
         <i class="bi-rss font-125rem"></i>
     </a>
-    <span>
-        @Localizer["All Posts"]
-    </span>
 </h3>
-<hr />
 
 @if (Model.Posts.Any())
 {
@@ -23,7 +26,7 @@
 else
 {
     <div class="alert alert-info">
-        @Localizer["No Posts."]
+        @SharedLocalizer["No Posts"]
     </div>
 }
 

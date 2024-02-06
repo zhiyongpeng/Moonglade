@@ -7,29 +7,22 @@ namespace Moonglade.Theme;
 
 public record CreateThemeCommand(string Name, IDictionary<string, string> Rules) : IRequest<int>;
 
-public class CreateThemeCommandHandler : IRequestHandler<CreateThemeCommand, int>
+public class CreateThemeCommandHandler(IRepository<BlogThemeEntity> repo) : IRequestHandler<CreateThemeCommand, int>
 {
-    private readonly IRepository<BlogThemeEntity> _themeRepo;
-
-    public CreateThemeCommandHandler(IRepository<BlogThemeEntity> themeRepo)
-    {
-        _themeRepo = themeRepo;
-    }
-
-    public async Task<int> Handle(CreateThemeCommand request, CancellationToken cancellationToken)
+    public async Task<int> Handle(CreateThemeCommand request, CancellationToken ct)
     {
         var (name, dictionary) = request;
-        if (_themeRepo.Any(p => p.ThemeName == name.Trim())) return 0;
+        if (await repo.AnyAsync(p => p.ThemeName == name.Trim(), ct)) return 0;
 
         var rules = JsonSerializer.Serialize(dictionary);
-        var blogTheme = new BlogThemeEntity
+        var entity = new BlogThemeEntity
         {
             ThemeName = name.Trim(),
             CssRules = rules,
             ThemeType = ThemeType.User
         };
 
-        await _themeRepo.AddAsync(blogTheme);
-        return blogTheme.Id;
+        await repo.AddAsync(entity, ct);
+        return entity.Id;
     }
 }

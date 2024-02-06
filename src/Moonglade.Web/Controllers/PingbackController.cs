@@ -1,4 +1,5 @@
-﻿using Moonglade.Notification.Client;
+﻿using Moonglade.Data.Entities;
+using Moonglade.Email.Client;
 using Moonglade.Pingback;
 using Moonglade.Web.Attributes;
 
@@ -6,59 +7,37 @@ namespace Moonglade.Web.Controllers;
 
 [ApiController]
 [Route("pingback")]
-public class PingbackController : ControllerBase
-{
-    private readonly ILogger<PingbackController> _logger;
-    private readonly IBlogConfig _blogConfig;
-    private readonly IMediator _mediator;
-
-    public PingbackController(
+public class PingbackController(
         ILogger<PingbackController> logger,
         IBlogConfig blogConfig,
-        IMediator mediator)
-    {
-        _logger = logger;
-        _blogConfig = blogConfig;
-        _mediator = mediator;
-    }
-
+        IMediator mediator) : ControllerBase
+{
     [HttpPost]
     [IgnoreAntiforgeryToken]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> Process([FromServices] IServiceScopeFactory factory)
+    public async Task<IActionResult> Process()
     {
-        if (!_blogConfig.AdvancedSettings.EnablePingbackReceive)
-        {
-            _logger.LogInformation("Pingback receive is disabled");
-            return Forbid();
-        }
+        if (!blogConfig.AdvancedSettings.EnablePingback) return Forbid();
 
-        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var ip = Helper.GetClientIP(HttpContext);
         var requestBody = await new StreamReader(HttpContext.Request.Body, Encoding.Default).ReadToEndAsync();
 
-        var response = await _mediator.Send(new ReceivePingCommand(requestBody, ip,
-            history =>
-            {
-                _ = Task.Run(async () =>
-                {
-                    var scope = factory.CreateScope();
-                    var mediator = scope.ServiceProvider.GetService<IMediator>();
-                    if (mediator != null)
-                    {
-                        await mediator.Publish(new PingbackNotification(
-                            history.TargetPostTitle,
-                            history.PingTimeUtc,
-                            history.Domain,
-                            history.SourceIp,
-                            history.SourceUrl,
-                            history.SourceTitle));
-                    }
-                });
-            }));
+        var response = await mediator.Send(new ReceivePingCommand(requestBody, ip, SendPingbackEmailAction));
 
-        _logger.LogInformation($"Pingback Processor Response: {response}");
         return new PingbackResult(response);
+    }
+
+    private async void SendPingbackEmailAction(PingbackEntity history)
+    {
+        try
+        {
+            await mediator.Publish(new PingbackNotification(history.TargetPostTitle, history.Domain, history.SourceIp, history.SourceUrl, history.SourceTitle));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, e.Message);
+        }
     }
 
     [Authorize]
@@ -66,7 +45,7 @@ public class PingbackController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete([NotEmpty] Guid pingbackId)
     {
-        await _mediator.Send(new DeletePingbackCommand(pingbackId));
+        await mediator.Send(new DeletePingbackCommand(pingbackId));
         return NoContent();
     }
 
@@ -75,7 +54,7 @@ public class PingbackController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Clear()
     {
-        await _mediator.Send(new ClearPingbackCommand());
+        await mediator.Send(new ClearPingbackCommand());
         return NoContent();
     }
 }

@@ -5,25 +5,11 @@ namespace Moonglade.Auth;
 
 public record DeleteAccountCommand(Guid Id) : IRequest;
 
-public class DeleteAccountCommandHandler : IRequestHandler<DeleteAccountCommand>
+public class DeleteAccountCommandHandler(IRepository<LocalAccountEntity> repo) : IRequestHandler<DeleteAccountCommand>
 {
-    private readonly IRepository<LocalAccountEntity> _accountRepo;
-
-    public DeleteAccountCommandHandler(IRepository<LocalAccountEntity> accountRepo)
+    public async Task Handle(DeleteAccountCommand request, CancellationToken ct)
     {
-        _accountRepo = accountRepo;
-    }
-
-    public async Task<Unit> Handle(DeleteAccountCommand request, CancellationToken cancellationToken)
-    {
-        var account = await _accountRepo.GetAsync(request.Id);
-        if (account is null)
-        {
-            throw new InvalidOperationException($"LocalAccountEntity with Id '{request.Id}' not found.");
-        }
-
-        await _accountRepo.DeleteAsync(request.Id);
-
-        return Unit.Value;
+        var account = await repo.GetAsync(request.Id, ct);
+        if (account != null) await repo.DeleteAsync(request.Id, ct);
     }
 }

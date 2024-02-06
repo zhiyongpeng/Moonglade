@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Moonglade.Configuration;
 
@@ -9,20 +10,28 @@ public class AdvancedSettings : IBlogSettings
     [MaxLength(1024)]
     public string RobotsTxtContent { get; set; }
 
-    [Display(Name = "Enable Pingback send")]
-    public bool EnablePingbackSend { get; set; }
+    [Display(Name = "Foot JavaScript")]
+    [DataType(DataType.MultilineText)]
+    [MaxLength(1024)]
+    public string FootScripts { get; set; }
 
-    [Display(Name = "Enable Pingback receive")]
-    public bool EnablePingbackReceive { get; set; }
-
-    [Display(Name = "Enable OpenGraph")]
-    public bool EnableOpenGraph { get; set; }
+    [Display(Name = "Enable Pingback")]
+    public bool EnablePingback { get; set; } = true;
 
     [Display(Name = "Enable MetaWeblog API")]
-    public bool EnableMetaWeblog { get; set; }
+    public bool EnableMetaWeblog { get; set; } = true;
 
     [Display(Name = "Enable OpenSearch")]
-    public bool EnableOpenSearch { get; set; }
+    public bool EnableOpenSearch { get; set; } = true;
+
+    [Display(Name = "Enable FOAF")]
+    public bool EnableFoaf { get; set; } = true;
+
+    [Display(Name = "Enable OPML")]
+    public bool EnableOpml { get; set; } = true;
+
+    [Display(Name = "Enable Site Map")]
+    public bool EnableSiteMap { get; set; } = true;
 
     [MinLength(8), MaxLength(16)]
     [Display(Name = "MetaWeblog password")]
@@ -31,11 +40,8 @@ public class AdvancedSettings : IBlogSettings
     [Display(Name = "Show warning when clicking external links")]
     public bool WarnExternalLink { get; set; }
 
-    [Display(Name = "Allow javascript in pages")]
-    public bool AllowScriptsInPage { get; set; }
-
-    [Display(Name = "Show Admin login button under sidebar")]
-    public bool ShowAdminLoginButton { get; set; }
-
     public string MetaWeblogPasswordHash { get; set; }
+
+    [JsonIgnore]
+    public static AdvancedSettings DefaultValue => new();
 }

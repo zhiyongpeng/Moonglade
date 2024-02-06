@@ -1,4 +1,4 @@
-﻿using Moonglade.Caching;
+﻿using Edi.CacheAside.InMemory;
 using System.ComponentModel.DataAnnotations;
 
 namespace Moonglade.Core.CategoryFeature;
@@ -22,21 +22,12 @@ public class CreateCategoryCommand : IRequest
     public string Note { get; set; }
 }
 
-public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryCommand>
+public class CreateCategoryCommandHandler(IRepository<CategoryEntity> catRepo, ICacheAside cache) : IRequestHandler<CreateCategoryCommand>
 {
-    private readonly IRepository<CategoryEntity> _catRepo;
-    private readonly IBlogCache _cache;
-
-    public CreateCategoryCommandHandler(IRepository<CategoryEntity> catRepo, IBlogCache cache)
+    public async Task Handle(CreateCategoryCommand request, CancellationToken ct)
     {
-        _catRepo = catRepo;
-        _cache = cache;
-    }
-
-    public async Task<Unit> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
-    {
-        var exists = _catRepo.Any(c => c.RouteName == request.RouteName);
-        if (exists) return Unit.Value;
+        var exists = await catRepo.AnyAsync(c => c.RouteName == request.RouteName, ct);
+        if (exists) return;
 
         var category = new CategoryEntity
         {
@@ -46,9 +37,7 @@ public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryComman
             DisplayName = request.DisplayName.Trim()
         };
 
-        await _catRepo.AddAsync(category);
-        _cache.Remove(CacheDivision.General, "allcats");
-
-        return Unit.Value;
+        await catRepo.AddAsync(category, ct);
+        cache.Remove(BlogCachePartition.General.ToString(), "allcats");
     }
 }

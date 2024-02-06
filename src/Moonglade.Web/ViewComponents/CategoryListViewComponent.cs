@@ -2,25 +2,19 @@
 
 namespace Moonglade.Web.ViewComponents;
 
-public class CategoryListViewComponent : ViewComponent
+public class CategoryListViewComponent(IMediator mediator, ILogger<CategoryListViewComponent> logger) : ViewComponent
 {
-    private readonly IMediator _mediator;
-
-    public CategoryListViewComponent(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
-
     public async Task<IViewComponentResult> InvokeAsync(bool isMenu)
     {
         try
         {
-            var cats = await _mediator.Send(new GetCategoriesQuery());
-            return isMenu ? View("CatMenu", cats) : View(cats);
+            var cats = await mediator.Send(new GetCategoriesQuery());
+            return isMenu ? View("Menu", cats) : View(cats);
         }
         catch (Exception e)
         {
-            return Content(e.Message);
+            logger.LogError(e, "Error GetCategoriesQuery()");
+            return Content("ERROR");
         }
     }
 }

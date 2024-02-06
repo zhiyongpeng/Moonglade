@@ -5,25 +5,18 @@ namespace Moonglade.Auth;
 
 public record LogSuccessLoginCommand(Guid Id, string IpAddress) : IRequest;
 
-public class LogSuccessLoginCommandHandler : IRequestHandler<LogSuccessLoginCommand>
+public class LogSuccessLoginCommandHandler(IRepository<LocalAccountEntity> repo) : IRequestHandler<LogSuccessLoginCommand>
 {
-    private readonly IRepository<LocalAccountEntity> _accountRepo;
-
-    public LogSuccessLoginCommandHandler(IRepository<LocalAccountEntity> accountRepo)
+    public async Task Handle(LogSuccessLoginCommand request, CancellationToken ct)
     {
-        _accountRepo = accountRepo;
-    }
+        var (id, ipAddress) = request;
 
-    public async Task<Unit> Handle(LogSuccessLoginCommand request, CancellationToken cancellationToken)
-    {
-        var entity = await _accountRepo.GetAsync(request.Id);
+        var entity = await repo.GetAsync(id, ct);
         if (entity is not null)
         {
-            entity.LastLoginIp = request.IpAddress.Trim();
+            entity.LastLoginIp = ipAddress.Trim();
             entity.LastLoginTimeUtc = DateTime.UtcNow;
-            await _accountRepo.UpdateAsync(entity);
+            await repo.UpdateAsync(entity, ct);
         }
-
-        return Unit.Value;
     }
 }

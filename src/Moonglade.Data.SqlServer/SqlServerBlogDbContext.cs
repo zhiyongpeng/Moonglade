@@ -1,10 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Moonglade.Data.SqlServer.Configurations;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Moonglade.Data.SqlServer;
 
-[ExcludeFromCodeCoverage]
+
 public class SqlServerBlogDbContext : BlogDbContext
 {
     public SqlServerBlogDbContext()
@@ -22,11 +21,11 @@ public class SqlServerBlogDbContext : BlogDbContext
         modelBuilder.ApplyConfiguration(new CommentReplyConfiguration());
         modelBuilder.ApplyConfiguration(new PostConfiguration());
         modelBuilder.ApplyConfiguration(new PostCategoryConfiguration());
-        modelBuilder.ApplyConfiguration(new PostExtensionConfiguration());
         modelBuilder.ApplyConfiguration(new LocalAccountConfiguration());
         modelBuilder.ApplyConfiguration(new PingbackConfiguration());
         modelBuilder.ApplyConfiguration(new BlogThemeConfiguration());
         modelBuilder.ApplyConfiguration(new BlogAssetConfiguration());
+        modelBuilder.ApplyConfiguration(new StyleSheetConfiguration());
         modelBuilder.ApplyConfiguration(new BlogConfigurationConfiguration());
         modelBuilder.ApplyConfiguration(new PageConfiguration());
 

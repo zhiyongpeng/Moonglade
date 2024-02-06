@@ -1,41 +1,28 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Moonglade.Core.PostFeature;
 using Moonglade.Core.TagFeature;
-using X.PagedList;
+using Moonglade.Web.PagedList;
 
 namespace Moonglade.Web.Pages;
 
-public class TagListModel : PageModel
+public class TagListModel(IMediator mediator, IBlogConfig blogConfig, ICacheAside cache) : PageModel
 {
-    private readonly IMediator _mediator;
-    private readonly IBlogConfig _blogConfig;
-    private readonly IBlogCache _cache;
-
     [BindProperty(SupportsGet = true)]
-    public int P { get; set; }
-    public StaticPagedList<PostDigest> Posts { get; set; }
-
-    public TagListModel(IMediator mediator, IBlogConfig blogConfig, IBlogCache cache)
-    {
-        _mediator = mediator;
-        _blogConfig = blogConfig;
-        _cache = cache;
-
-        P = 1;
-    }
+    public int P { get; set; } = 1;
+    public BasePagedList<PostDigest> Posts { get; set; }
 
     public async Task<IActionResult> OnGet(string normalizedName)
     {
-        var tagResponse = await _mediator.Send(new GetTagQuery(normalizedName));
+        var tagResponse = await mediator.Send(new GetTagQuery(normalizedName));
         if (tagResponse is null) return NotFound();
 
-        var pagesize = _blogConfig.ContentSettings.PostListPageSize;
-        var posts = await _mediator.Send(new ListByTagQuery(tagResponse.Id, pagesize, P));
-        var count = await _cache.GetOrCreateAsync(CacheDivision.PostCountTag, tagResponse.Id.ToString(), _ => _mediator.Send(new CountPostQuery(CountType.Tag, TagId: tagResponse.Id)));
+        var pagesize = blogConfig.ContentSettings.PostListPageSize;
+        var posts = await mediator.Send(new ListByTagQuery(tagResponse.Id, pagesize, P));
+        var count = await cache.GetOrCreateAsync(BlogCachePartition.PostCountTag.ToString(), tagResponse.Id.ToString(), _ => mediator.Send(new CountPostQuery(CountType.Tag, TagId: tagResponse.Id)));
 
         ViewData["TitlePrefix"] = tagResponse.DisplayName;
 
-        var list = new StaticPagedList<PostDigest>(posts, P, pagesize, count);
+        var list = new BasePagedList<PostDigest>(posts, P, pagesize, count);
         Posts = list;
 
         return Page();

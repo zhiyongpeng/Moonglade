@@ -2,15 +2,8 @@ using Moonglade.FriendLink;
 
 namespace Moonglade.Web.Middleware;
 
-public class FoafMiddleware
+public class FoafMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public FoafMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public async Task Invoke(
         HttpContext context,
         IBlogConfig blogConfig,
@@ -42,15 +35,15 @@ public class FoafMiddleware
                 PhotoUrl = linkGenerator.GetUriByAction(context, "Avatar", "Assets")
             };
             var requestUrl = GetUri(context.Request).ToString();
-            var xml = await mediator.Send(new WriterFoafCommand(foafDoc, requestUrl, friends));
+            var xml = await mediator.Send(new WriteFoafCommand(foafDoc, requestUrl, friends));
 
             //[ResponseCache(Duration = 3600)]
-            context.Response.ContentType = WriterFoafCommand.ContentType;
+            context.Response.ContentType = WriteFoafCommand.ContentType;
             await context.Response.WriteAsync(xml, context.RequestAborted);
         }
         else
         {
-            await _next(context);
+            await next(context);
         }
     }
 }

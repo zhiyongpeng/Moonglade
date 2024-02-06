@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Moonglade.Auth;
 
-public class CreateAccountCommand : IRequest<Guid>
+public class CreateAccountCommand : IRequest
 {
     [Required]
     [Display(Name = "Username")]
@@ -21,17 +21,9 @@ public class CreateAccountCommand : IRequest<Guid>
     public string Password { get; set; }
 }
 
-public class CreateAccountCommandHandler : IRequestHandler<CreateAccountCommand, Guid>
+public class CreateAccountCommandHandler(IRepository<LocalAccountEntity> repo) : IRequestHandler<CreateAccountCommand>
 {
-    private readonly IRepository<LocalAccountEntity> _accountRepo;
-
-    public CreateAccountCommandHandler(
-        IRepository<LocalAccountEntity> accountRepo)
-    {
-        _accountRepo = accountRepo;
-    }
-
-    public async Task<Guid> Handle(CreateAccountCommand request, CancellationToken cancellationToken)
+    public Task Handle(CreateAccountCommand request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Username))
         {
@@ -44,16 +36,18 @@ public class CreateAccountCommandHandler : IRequestHandler<CreateAccountCommand,
         }
 
         var uid = Guid.NewGuid();
+        var salt = Helper.GenerateSalt();
+        var hash = Helper.HashPassword2(request.Password.Trim(), salt);
+
         var account = new LocalAccountEntity
         {
             Id = uid,
             CreateTimeUtc = DateTime.UtcNow,
             Username = request.Username.ToLower().Trim(),
-            PasswordHash = Helper.HashPassword(request.Password.Trim())
+            PasswordSalt = salt,
+            PasswordHash = hash
         };
 
-        await _accountRepo.AddAsync(account);
-
-        return uid;
+        return repo.AddAsync(account, ct);
     }
 }

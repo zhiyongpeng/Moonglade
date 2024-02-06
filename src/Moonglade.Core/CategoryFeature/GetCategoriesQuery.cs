@@ -1,26 +1,17 @@
-﻿using Moonglade.Caching;
+﻿using Edi.CacheAside.InMemory;
 
 namespace Moonglade.Core.CategoryFeature;
 
 public record GetCategoriesQuery : IRequest<IReadOnlyList<Category>>;
 
-public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, IReadOnlyList<Category>>
+public class GetCategoriesQueryHandler(IRepository<CategoryEntity> repo, ICacheAside cache) : IRequestHandler<GetCategoriesQuery, IReadOnlyList<Category>>
 {
-    private readonly IRepository<CategoryEntity> _catRepo;
-    private readonly IBlogCache _cache;
-
-    public GetCategoriesQueryHandler(IRepository<CategoryEntity> catRepo, IBlogCache cache)
+    public Task<IReadOnlyList<Category>> Handle(GetCategoriesQuery request, CancellationToken ct)
     {
-        _catRepo = catRepo;
-        _cache = cache;
-    }
-
-    public Task<IReadOnlyList<Category>> Handle(GetCategoriesQuery request, CancellationToken cancellationToken)
-    {
-        return _cache.GetOrCreateAsync(CacheDivision.General, "allcats", async entry =>
+        return cache.GetOrCreateAsync(BlogCachePartition.General.ToString(), "allcats", async entry =>
         {
             entry.SlidingExpiration = TimeSpan.FromHours(1);
-            var list = await _catRepo.SelectAsync(Category.EntitySelector);
+            var list = await repo.SelectAsync(Category.EntitySelector, ct);
             return list;
         });
     }

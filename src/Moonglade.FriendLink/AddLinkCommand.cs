@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Moonglade.FriendLink;
 
-public class AddLinkCommand : IRequest
+public class AddLinkCommand : IRequest, IValidatableObject
 {
     [Required]
     [Display(Name = "Title")]
@@ -18,33 +18,31 @@ public class AddLinkCommand : IRequest
     [DataType(DataType.Url)]
     [MaxLength(256)]
     public string LinkUrl { get; set; }
+
+    [Display(Name = "Rank")]
+    public int Rank { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (!Uri.IsWellFormedUriString(LinkUrl, UriKind.Absolute))
+        {
+            yield return new($"{nameof(LinkUrl)} is not a valid url.");
+        }
+    }
 }
 
-public class AddLinkCommandHandler : IRequestHandler<AddLinkCommand>
+public class AddLinkCommandHandler(IRepository<FriendLinkEntity> repo) : IRequestHandler<AddLinkCommand>
 {
-    private readonly IRepository<FriendLinkEntity> _friendlinkRepo;
-
-    public AddLinkCommandHandler(IRepository<FriendLinkEntity> friendlinkRepo)
+    public async Task Handle(AddLinkCommand request, CancellationToken ct)
     {
-        _friendlinkRepo = friendlinkRepo;
-    }
-
-    public async Task<Unit> Handle(AddLinkCommand request, CancellationToken cancellationToken)
-    {
-        if (!Uri.IsWellFormedUriString(request.LinkUrl, UriKind.Absolute))
-        {
-            throw new InvalidOperationException($"{nameof(request.LinkUrl)} is not a valid url.");
-        }
-
         var link = new FriendLinkEntity
         {
             Id = Guid.NewGuid(),
             LinkUrl = Helper.SterilizeLink(request.LinkUrl),
-            Title = request.Title
+            Title = request.Title,
+            Rank = request.Rank
         };
 
-        await _friendlinkRepo.AddAsync(link);
-
-        return Unit.Value;
+        await repo.AddAsync(link, ct);
     }
 }

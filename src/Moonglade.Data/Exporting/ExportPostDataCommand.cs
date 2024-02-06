@@ -7,18 +7,11 @@ namespace Moonglade.Data.Exporting;
 
 public record ExportPostDataCommand : IRequest<ExportResult>;
 
-public class ExportPostDataCommandHandler : IRequestHandler<ExportPostDataCommand, ExportResult>
+public class ExportPostDataCommandHandler(IRepository<PostEntity> repo) : IRequestHandler<ExportPostDataCommand, ExportResult>
 {
-    private readonly IRepository<PostEntity> _postRepository;
-
-    public ExportPostDataCommandHandler(IRepository<PostEntity> postRepository)
+    public Task<ExportResult> Handle(ExportPostDataCommand request, CancellationToken ct)
     {
-        _postRepository = postRepository;
-    }
-
-    public Task<ExportResult> Handle(ExportPostDataCommand request, CancellationToken cancellationToken)
-    {
-        var poExp = new ZippedJsonExporter<PostEntity>(_postRepository, "moonglade-posts", ExportManager.DataDir);
+        var poExp = new ZippedJsonExporter<PostEntity>(repo, "moonglade-posts", ExportManager.DataDir);
         var poExportData = poExp.ExportData(p => new
         {
             p.Title,
@@ -27,8 +20,6 @@ public class ExportPostDataCommandHandler : IRequestHandler<ExportPostDataComman
             p.PostContent,
             p.CreateTimeUtc,
             p.CommentEnabled,
-            p.PostExtension.Hits,
-            p.PostExtension.Likes,
             p.PubDateUtc,
             p.ContentLanguageCode,
             p.IsDeleted,
@@ -36,7 +27,7 @@ public class ExportPostDataCommandHandler : IRequestHandler<ExportPostDataComman
             p.IsPublished,
             Categories = p.PostCategory.Select(pc => pc.Category.DisplayName),
             Tags = p.Tags.Select(pt => pt.DisplayName)
-        }, cancellationToken);
+        }, ct);
 
         return poExportData;
     }

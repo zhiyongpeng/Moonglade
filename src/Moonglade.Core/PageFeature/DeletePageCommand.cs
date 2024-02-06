@@ -2,25 +2,21 @@
 
 public record DeletePageCommand(Guid Id) : IRequest;
 
-public class DeletePageCommandHandler : IRequestHandler<DeletePageCommand>
+public class DeletePageCommandHandler(IRepository<PageEntity> repo, IMediator mediator) : IRequestHandler<DeletePageCommand>
 {
-    private readonly IRepository<PageEntity> _pageRepo;
-
-    public DeletePageCommandHandler(IRepository<PageEntity> pageRepo)
+    public async Task Handle(DeletePageCommand request, CancellationToken ct)
     {
-        _pageRepo = pageRepo;
-    }
-
-    public async Task<Unit> Handle(DeletePageCommand request, CancellationToken cancellationToken)
-    {
-        var page = await _pageRepo.GetAsync(request.Id);
+        var page = await repo.GetAsync(request.Id, ct);
         if (page is null)
         {
-            throw new InvalidOperationException($"CustomPageEntity with Id '{request.Id}' not found.");
+            throw new InvalidOperationException($"PageEntity with Id '{request.Id}' not found.");
         }
 
-        await _pageRepo.DeleteAsync(request.Id);
+        if (page.CssId != null)
+        {
+            await mediator.Send(new DeleteStyleSheetCommand(new(page.CssId)), ct);
+        }
 
-        return Unit.Value;
+        await repo.DeleteAsync(request.Id, ct);
     }
 }

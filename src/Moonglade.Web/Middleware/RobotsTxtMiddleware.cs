@@ -1,14 +1,7 @@
 ﻿namespace Moonglade.Web.Middleware;
 
-public class RobotsTxtMiddleware
+public class RobotsTxtMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public RobotsTxtMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public async Task Invoke(HttpContext httpContext, IBlogConfig blogConfig)
     {
         // Double check path to prevent user from wrong usage like adding the middleware manually without MapWhen
@@ -26,17 +19,15 @@ public class RobotsTxtMiddleware
         }
         else
         {
-            await _next(httpContext);
+            await next(httpContext);
         }
     }
 }
 
 public static partial class ApplicationBuilderExtensions
 {
-    public static IApplicationBuilder UseRobotsTxt(this IApplicationBuilder builder)
-    {
-        return builder.MapWhen(
+    public static IApplicationBuilder UseRobotsTxt(this IApplicationBuilder builder) =>
+        builder.MapWhen(
             context => context.Request.Path == "/robots.txt",
             p => p.UseMiddleware<RobotsTxtMiddleware>());
-    }
 }

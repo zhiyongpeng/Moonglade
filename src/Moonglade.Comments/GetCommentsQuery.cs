@@ -7,24 +7,12 @@ namespace Moonglade.Comments;
 
 public record GetCommentsQuery(int PageSize, int PageIndex) : IRequest<IReadOnlyList<CommentDetailedItem>>;
 
-public class GetCommentsQueryHandler : IRequestHandler<GetCommentsQuery, IReadOnlyList<CommentDetailedItem>>
+public class GetCommentsQueryHandler(IRepository<CommentEntity> repo) : IRequestHandler<GetCommentsQuery, IReadOnlyList<CommentDetailedItem>>
 {
-    private readonly IRepository<CommentEntity> _commentRepo;
-
-    public GetCommentsQueryHandler(IRepository<CommentEntity> commentRepo)
+    public Task<IReadOnlyList<CommentDetailedItem>> Handle(GetCommentsQuery request, CancellationToken ct)
     {
-        _commentRepo = commentRepo;
-    }
-
-    public Task<IReadOnlyList<CommentDetailedItem>> Handle(GetCommentsQuery request, CancellationToken cancellationToken)
-    {
-        if (request.PageSize < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(request.PageSize), $"{nameof(request.PageSize)} can not be less than 1.");
-        }
-
         var spec = new CommentSpec(request.PageSize, request.PageIndex);
-        var comments = _commentRepo.SelectAsync(spec, CommentDetailedItem.EntitySelector);
+        var comments = repo.SelectAsync(spec, CommentDetailedItem.EntitySelector, ct);
 
         return comments;
     }

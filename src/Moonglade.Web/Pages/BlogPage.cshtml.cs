@@ -1,34 +1,21 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Options;
 using Moonglade.Core.PageFeature;
 
 namespace Moonglade.Web.Pages;
 
-public class BlogPageModel : PageModel
+public class BlogPageModel(IMediator mediator, ICacheAside cache, IConfiguration configuration) : PageModel
 {
-    private readonly IMediator _mediator;
-
-    private readonly IBlogCache _cache;
-    private readonly AppSettings _settings;
     public BlogPage BlogPage { get; set; }
-
-    public BlogPageModel(
-        IMediator mediator, IBlogCache cache, IOptions<AppSettings> settingsOptions)
-    {
-        _cache = cache;
-        _mediator = mediator;
-        _settings = settingsOptions.Value;
-    }
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         if (string.IsNullOrWhiteSpace(slug)) return BadRequest();
 
-        var page = await _cache.GetOrCreateAsync(CacheDivision.Page, slug.ToLower(), async entry =>
+        var page = await cache.GetOrCreateAsync(BlogCachePartition.Page.ToString(), slug.ToLower(), async entry =>
         {
-            entry.SlidingExpiration = TimeSpan.FromMinutes(_settings.CacheSlidingExpirationMinutes["Page"]);
+            entry.SlidingExpiration = TimeSpan.FromMinutes(int.Parse(configuration["CacheSlidingExpirationMinutes:Page"]!));
 
-            var p = await _mediator.Send(new GetPageBySlugQuery(slug));
+            var p = await mediator.Send(new GetPageBySlugQuery(slug));
             return p;
         });
 

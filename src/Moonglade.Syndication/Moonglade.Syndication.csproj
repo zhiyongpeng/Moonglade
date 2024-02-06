@@ -1,19 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SyndicationFeed.ReaderWriter" Version="1.0.2" />
-    <PackageReference Include="MediatR" Version="10.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="..\Moonglade.Configuration\Moonglade.Configuration.csproj" />
-    <ProjectReference Include="..\Moonglade.Data\Moonglade.Data.csproj" />
-    <ProjectReference Include="..\Moonglade.Utils\Moonglade.Utils.csproj" />
-  </ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <AssemblyName>Moonglade.Syndication</AssemblyName>
+        <RootNamespace>Moonglade.Syndication</RootNamespace>
+        <IsTestProject>false</IsTestProject>
+        <IsPackable>false</IsPackable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Edi.SyndicationFeed.ReaderWriter" Version="2.2.0" />
+    </ItemGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <ProjectReference Include="..\Moonglade.Configuration\Moonglade.Configuration.csproj" />
+    </ItemGroup>
 </Project>

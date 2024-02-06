@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Moonglade.Notification.Client;
+using Moonglade.Email.Client;
 using Moonglade.Web.Attributes;
 using System.ComponentModel.DataAnnotations;
 
@@ -9,46 +9,11 @@ namespace Moonglade.Web.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [CommentProviderGate]
-public class CommentController : ControllerBase
-{
-    #region Private Fields
-
-    private readonly IMediator _mediator;
-
-    private readonly ITimeZoneResolver _timeZoneResolver;
-    private readonly IBlogConfig _blogConfig;
-
-    #endregion
-
-    public CommentController(
+public class CommentController(
         IMediator mediator,
         IBlogConfig blogConfig,
-        ITimeZoneResolver timeZoneResolver)
-    {
-        _mediator = mediator;
-        _blogConfig = blogConfig;
-        _timeZoneResolver = timeZoneResolver;
-    }
-
-    [HttpGet("list/{postId:guid}")]
-    [FeatureGate(FeatureFlags.EnableWebApi)]
-    [Authorize(AuthenticationSchemes = BlogAuthSchemas.All)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> List([NotEmpty] Guid postId)
-    {
-        var comments = await _mediator.Send(new GetApprovedCommentsQuery(postId));
-        var resp = comments.Select(p => new
-        {
-            p.Username,
-            Content = p.CommentContent,
-            p.CreateTimeUtc,
-            CreateTimeLocal = _timeZoneResolver.ToTimeZone(p.CreateTimeUtc),
-            Replies = p.CommentReplies
-        });
-
-        return Ok(resp);
-    }
-
+        ILogger<CommentController> logger) : ControllerBase
+{
     [HttpPost("{postId:guid}")]
     [AllowAnonymous]
     [ServiceFilter(typeof(ValidateCaptcha))]
@@ -56,8 +21,8 @@ public class CommentController : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ModelStateDictionary), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Create([NotEmpty] Guid postId, CommentRequest request, [FromServices] IServiceScopeFactory factory)
+    [ProducesResponseType<ModelStateDictionary>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Create([NotEmpty] Guid postId, CommentRequest request)
     {
         if (!string.IsNullOrWhiteSpace(request.Email) && !Helper.IsValidEmailAddress(request.Email))
         {
@@ -65,37 +30,39 @@ public class CommentController : ControllerBase
             return BadRequest(ModelState.CombineErrorMessages());
         }
 
-        if (!_blogConfig.ContentSettings.EnableComments) return Forbid();
+        if (!blogConfig.ContentSettings.EnableComments) return Forbid();
 
-        var ip = (bool)HttpContext.Items["DNT"] ? "N/A" : HttpContext.Connection.RemoteIpAddress?.ToString();
-        var item = await _mediator.Send(new CreateCommentCommand(postId, request, ip));
+        var ip = (bool)HttpContext.Items["DNT"]! ? "N/A" : Helper.GetClientIP(HttpContext);
+        var item = await mediator.Send(new CreateCommentCommand(postId, request, ip));
 
-        if (item is null)
+        switch (item.Status)
         {
-            ModelState.AddModelError(nameof(request.Content), "Your comment contains bad bad word.");
-            return Conflict(ModelState);
+            case -1:
+                ModelState.AddModelError(nameof(request.Content), "Your comment contains bad bad word.");
+                return Conflict(ModelState);
+            case -2:
+                ModelState.AddModelError(nameof(postId), "Comment is closed for this post.");
+                return Conflict(ModelState);
         }
 
-        if (_blogConfig.NotificationSettings.SendEmailOnNewComment)
+        if (blogConfig.NotificationSettings.SendEmailOnNewComment)
         {
-            _ = Task.Run(async () =>
+            try
             {
-                var scope = factory.CreateScope();
-                var mediator = scope.ServiceProvider.GetService<IMediator>();
-                if (mediator != null)
-                {
-                    await mediator.Publish(new CommentNotification(
-                        item.Username,
-                        item.Email,
-                        item.IpAddress,
-                        item.PostTitle,
-                        item.CommentContent,
-                        item.CreateTimeUtc));
-                }
-            });
+                await mediator.Publish(new CommentNotification(
+                    item.Item.Username,
+                    item.Item.Email,
+                    item.Item.IpAddress,
+                    item.Item.PostTitle,
+                    item.Item.CommentContent));
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, e.Message);
+            }
         }
 
-        if (_blogConfig.ContentSettings.RequireCommentReview)
+        if (blogConfig.ContentSettings.RequireCommentReview)
         {
             return Created("moonglade://empty", item);
         }
@@ -104,57 +71,50 @@ public class CommentController : ControllerBase
     }
 
     [HttpPut("{commentId:guid}/approval/toggle")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType<Guid>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Approval([NotEmpty] Guid commentId)
     {
-        await _mediator.Send(new ToggleApprovalCommand(new[] { commentId }));
+        await mediator.Send(new ToggleApprovalCommand(new[] { commentId }));
         return Ok(commentId);
     }
 
     [HttpDelete]
-    [ProducesResponseType(typeof(Guid[]), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Delete([FromBody] Guid[] commentIds)
+    [ProducesResponseType<Guid[]>(StatusCodes.Status200OK)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Delete([FromBody][MinLength(1)] Guid[] commentIds)
     {
-        if (commentIds.Length == 0)
-        {
-            ModelState.AddModelError(nameof(commentIds), "value is empty");
-            return BadRequest(ModelState.CombineErrorMessages());
-        }
-
-        await _mediator.Send(new DeleteCommentsCommand(commentIds));
+        await mediator.Send(new DeleteCommentsCommand(commentIds));
         return Ok(commentIds);
     }
 
     [HttpPost("{commentId:guid}/reply")]
-    [ProducesResponseType(typeof(CommentReply), StatusCodes.Status200OK)]
+    [ProducesResponseType<CommentReply>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Reply(
         [NotEmpty] Guid commentId,
         [Required][FromBody] string replyContent,
-        [FromServices] LinkGenerator linkGenerator,
-        [FromServices] IServiceScopeFactory factory)
+        LinkGenerator linkGenerator)
     {
-        if (!_blogConfig.ContentSettings.EnableComments) return Forbid();
+        if (!blogConfig.ContentSettings.EnableComments) return Forbid();
 
-        var reply = await _mediator.Send(new ReplyCommentCommand(commentId, replyContent));
-        if (_blogConfig.NotificationSettings.SendEmailOnCommentReply && !string.IsNullOrWhiteSpace(reply.Email))
+        var reply = await mediator.Send(new ReplyCommentCommand(commentId, replyContent));
+        if (blogConfig.NotificationSettings.SendEmailOnCommentReply && !string.IsNullOrWhiteSpace(reply.Email))
         {
             var postLink = GetPostUrl(linkGenerator, reply.PubDateUtc, reply.Slug);
-            _ = Task.Run(async () =>
+
+            try
             {
-                var scope = factory.CreateScope();
-                var mediator = scope.ServiceProvider.GetService<IMediator>();
-                if (mediator != null)
-                {
-                    await mediator.Publish(new CommentReplyNotification(
-                        reply.Email,
-                        reply.CommentContent,
-                        reply.Title,
-                        reply.ReplyContentHtml,
-                        postLink));
-                }
-            });
+                await mediator.Publish(new CommentReplyNotification(
+                    reply.Email,
+                    reply.CommentContent,
+                    reply.Title,
+                    reply.ReplyContentHtml,
+                    postLink));
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, e.Message);
+            }
         }
 
         return Ok(reply);

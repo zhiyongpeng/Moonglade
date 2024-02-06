@@ -2,15 +2,12 @@
 
 namespace Moonglade.Web.Middleware;
 
-public class RSDMiddleware
+// Really Simple Discovery (RSD) is a protocol or method that makes it easier for client software to automatically discover the API endpoint needed to interact with a web service. It's primarily used in the context of blog software and content management systems (CMS).
+// 
+// RSD allows client applications, like blog editors and content aggregators, to find the services needed to read, edit, or work with the content of a website without the user having to manually input the details of the API endpoints. For example, if you're using a desktop blogging application, RSD would enable that application to find the endpoint for the XML-RPC API of your blog so you can post directly from your desktop.
+
+public class RSDMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public RSDMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public async Task Invoke(HttpContext httpContext, IBlogConfig blogConfig)
     {
         if (httpContext.Request.Path == "/rsd")
@@ -23,7 +20,7 @@ public class RSDMiddleware
         }
         else
         {
-            await _next(httpContext);
+            await next(httpContext);
         }
     }
 
@@ -43,7 +40,7 @@ public class RSDMiddleware
             // Service 
             writer.WriteStartElement("service");
             writer.WriteElementString("engineName", $"Moonglade {Helper.AppVersion}");
-            writer.WriteElementString("engineLink", "https://moonglade.blog");
+            writer.WriteElementString("engineLink", "https://github.com/EdiWang/Moonglade");
             writer.WriteElementString("homePageLink", siteRootUrl);
 
             // APIs

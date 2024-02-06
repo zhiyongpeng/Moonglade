@@ -6,17 +6,7 @@ namespace Moonglade.Pingback;
 
 public record GetPingbacksQuery : IRequest<IReadOnlyList<PingbackEntity>>;
 
-public class GetPingbacksQueryHandler : IRequestHandler<GetPingbacksQuery, IReadOnlyList<PingbackEntity>>
+public class GetPingbacksQueryHandler(IRepository<PingbackEntity> repo) : IRequestHandler<GetPingbacksQuery, IReadOnlyList<PingbackEntity>>
 {
-    private readonly IRepository<PingbackEntity> _pingbackRepo;
-
-    public GetPingbacksQueryHandler(IRepository<PingbackEntity> pingbackRepo)
-    {
-        _pingbackRepo = pingbackRepo;
-    }
-
-    public Task<IReadOnlyList<PingbackEntity>> Handle(GetPingbacksQuery request, CancellationToken cancellationToken)
-    {
-        return _pingbackRepo.GetAsync();
-    }
+    public Task<IReadOnlyList<PingbackEntity>> Handle(GetPingbacksQuery request, CancellationToken ct) => repo.ListAsync(ct);
 }

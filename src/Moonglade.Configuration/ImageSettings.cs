@@ -1,5 +1,6 @@
 ﻿using Moonglade.Utils;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Moonglade.Configuration;
 
@@ -11,6 +12,7 @@ public class ImageSettings : IBlogSettings, IValidatableObject
     [Display(Name = "Keep origin image")]
     public bool KeepOriginImage { get; set; }
 
+    [Required]
     [Display(Name = "Font size")]
     [Range(8, 32)]
     public int WatermarkFontSize { get; set; }
@@ -20,8 +22,15 @@ public class ImageSettings : IBlogSettings, IValidatableObject
     [MaxLength(32)]
     public string WatermarkText { get; set; }
 
-    [Display(Name = "Use friendly 404 image")]
-    public bool UseFriendlyNotFoundImage { get; set; }
+    [Required]
+    [Display(Name = "A")]
+    [Range(0, 255)]
+    public int WatermarkColorA { get; set; } = 128;
+
+    [Required]
+    [Display(Name = "Watermark skip pixel threshold")]
+    [Range(0, int.MaxValue)]
+    public int WatermarkSkipPixel { get; set; } = 40000;
 
     [Display(Name = "Fit image to device pixel ratio")]
     public bool FitImageToDevicePixelRatio { get; set; }
@@ -56,4 +65,15 @@ public class ImageSettings : IBlogSettings, IValidatableObject
             }
         }
     }
+
+    [JsonIgnore]
+    public static ImageSettings DefaultValue =>
+        new()
+        {
+            IsWatermarkEnabled = true,
+            KeepOriginImage = false,
+            WatermarkFontSize = 20,
+            WatermarkText = "Moonglade",
+            FitImageToDevicePixelRatio = true
+        };
 }

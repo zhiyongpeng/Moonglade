@@ -6,18 +6,11 @@ namespace Moonglade.Configuration;
 
 public record GetAllConfigurationsQuery : IRequest<IDictionary<string, string>>;
 
-public class GetAllConfigurationsQueryHandler : IRequestHandler<GetAllConfigurationsQuery, IDictionary<string, string>>
+public class GetAllConfigurationsQueryHandler(IRepository<BlogConfigurationEntity> repo) : IRequestHandler<GetAllConfigurationsQuery, IDictionary<string, string>>
 {
-    private readonly IRepository<BlogConfigurationEntity> _repository;
-
-    public GetAllConfigurationsQueryHandler(IRepository<BlogConfigurationEntity> repository)
+    public async Task<IDictionary<string, string>> Handle(GetAllConfigurationsQuery request, CancellationToken ct)
     {
-        _repository = repository;
-    }
-
-    public async Task<IDictionary<string, string>> Handle(GetAllConfigurationsQuery request, CancellationToken cancellationToken)
-    {
-        var entities = await _repository.SelectAsync(p => new { p.CfgKey, p.CfgValue });
+        var entities = await repo.SelectAsync(p => new { p.CfgKey, p.CfgValue }, ct);
         return entities.ToDictionary(k => k.CfgKey, v => v.CfgValue);
     }
 }

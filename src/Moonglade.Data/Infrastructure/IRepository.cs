@@ -2,57 +2,46 @@
 
 namespace Moonglade.Data.Infrastructure;
 
-public interface IRepository<T> //where T : class
+public interface IRepository<T> where T : class
 {
-    Task ExecuteSqlRawAsync(string sql);
+    Task Clear(CancellationToken ct = default);
 
-    ValueTask<T> GetAsync(object key);
+    ValueTask<T> GetAsync(object key, CancellationToken ct = default);
 
     Task<T> GetAsync(Expression<Func<T, bool>> condition);
 
-    Task<IReadOnlyList<T>> GetAsync();
+    Task<IReadOnlyList<T>> ListAsync(CancellationToken ct = default);
 
-    Task<IReadOnlyList<T>> GetAsync(ISpecification<T> spec);
+    Task<IReadOnlyList<T>> ListAsync(ISpecification<T> spec);
 
-    IQueryable<T> GetAsQueryable();
+    IQueryable<T> AsQueryable();
 
-    TResult SelectFirstOrDefault<TResult>(
-        ISpecification<T> spec,
-        Expression<Func<T, TResult>> selector);
+    Task DeleteAsync(T entity, CancellationToken ct = default);
 
-    Task DeleteAsync(T entity);
+    Task DeleteAsync(IEnumerable<T> entities, CancellationToken ct = default);
 
-    Task DeleteAsync(IEnumerable<T> entities);
+    Task DeleteAsync(object key, CancellationToken ct = default);
 
-    Task DeleteAsync(object key);
+    Task<int> CountAsync(Expression<Func<T, bool>> condition, CancellationToken ct = default);
 
-    int Count(ISpecification<T> spec = null);
+    Task<int> CountAsync(ISpecification<T> spec = null, CancellationToken ct = default);
 
-    int Count(Expression<Func<T, bool>> condition);
+    Task<bool> AnyAsync(ISpecification<T> spec, CancellationToken ct = default);
 
-    Task<int> CountAsync(ISpecification<T> spec);
+    Task<bool> AnyAsync(Expression<Func<T, bool>> condition = null, CancellationToken ct = default);
 
-    bool Any(ISpecification<T> spec);
+    Task<IReadOnlyList<TResult>> SelectAsync<TResult>(Expression<Func<T, TResult>> selector, CancellationToken ct = default);
 
-    bool Any(Expression<Func<T, bool>> condition = null);
+    Task<IReadOnlyList<TResult>> SelectAsync<TResult>(ISpecification<T> spec, Expression<Func<T, TResult>> selector, CancellationToken ct = default);
 
-    Task<IReadOnlyList<TResult>> SelectAsync<TResult>(
-        Expression<Func<T, TResult>> selector);
-
-    Task<IReadOnlyList<TResult>> SelectAsync<TResult>(
-        ISpecification<T> spec,
-        Expression<Func<T, TResult>> selector);
-
-    Task<TResult> SelectFirstOrDefaultAsync<TResult>(
-        ISpecification<T> spec,
-        Expression<Func<T, TResult>> selector);
+    Task<TResult> FirstOrDefaultAsync<TResult>(ISpecification<T> spec, Expression<Func<T, TResult>> selector);
 
     Task<IReadOnlyList<TResult>> SelectAsync<TGroup, TResult>(
         Expression<Func<T, TGroup>> groupExpression,
         Expression<Func<IGrouping<TGroup, T>, TResult>> selector,
         ISpecification<T> spec = null);
 
-    Task<T> AddAsync(T entity);
+    Task<T> AddAsync(T entity, CancellationToken ct = default);
 
-    Task UpdateAsync(T entity);
+    Task UpdateAsync(T entity, CancellationToken ct = default);
 }

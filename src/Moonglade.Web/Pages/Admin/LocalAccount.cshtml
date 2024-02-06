@@ -1,102 +1,107 @@
 ﻿@page "/admin/account"
 @model Moonglade.Web.Pages.Admin.LocalAccountModel
 @{
-    ViewBag.Title = "Manage Accounts";
+    ViewBag.Title = "Accounts";
     var currentUidClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
 }
 
 @section scripts{
-<script>
-    var editAccountModal = new bootstrap.Modal('#editAccountModal');
-    var resetPasswordModal = new bootstrap.Modal('#resetPasswordModal');
+    <script type="module">
+        import * as utils from '/js/app/utils.module.js'
 
-    var cid = '';
+        var editAccountModal = new bootstrap.Modal('#editAccountModal');
+        var resetPasswordModal = new bootstrap.Modal('#resetPasswordModal');
 
-    function deleteConfirm(accountId) {
-        var cfm = confirm("Delete Confirmation?");
-        if (cfm) {
-            deleteAccount(accountId);
+        var cid = '';
+
+        window.deleteConfirm = function (accountId) {
+            var cfm = confirm("Delete Confirmation?");
+            if (cfm) {
+                deleteAccount(accountId);
+            }
         }
-    }
 
-    function deleteAccount(accountid) {
-        callApi(`/api/localaccount/${accountid}`, 'DELETE', {},
-            (resp) => {
-                document.querySelector(`#tr-${accountid}`).remove();
-            });
-    }
+        window.deleteAccount = function (accountid) {
+            callApi(`/api/localaccount/${accountid}`, 'DELETE', {},
+                (resp) => {
+                    document.querySelector(`#tr-${accountid}`).remove();
+                });
+        }
 
-    function resetPassword(accountId) {
-        document.querySelector('#resetpassword-form').reset();
-        resetPasswordModal.show();
-        cid = accountId;
-    }
+        window.resetPassword = function (accountId) {
+            document.querySelector('#resetpassword-form').reset();
+            resetPasswordModal.show();
+            cid = accountId;
+        }
 
-    function initCreateAccount() {
-        document.querySelector('#new-account-form').reset();
-        editAccountModal.show();
-    }
+        window.initCreateAccount = function () {
+            document.querySelector('#new-account-form').reset();
+            editAccountModal.show();
+        }
 
-    function handleNewAccountFormSubmit(event) {
-        event.preventDefault();
+        window.handleNewAccountFormSubmit = function (event) {
+            event.preventDefault();
 
-        const data = new FormData(event.target);
-        const value = Object.fromEntries(data.entries());
-        const newValue = toMagicJson(value);
+            const data = new FormData(event.target);
+            const value = Object.fromEntries(data.entries());
+            const newValue = utils.toMagicJson(value);
 
-        callApi(`/api/localaccount`,
-            'POST',
-            newValue,
-            (resp) => {
-                document.querySelector('#new-account-form').reset();
-                editAccountModal.hide();
-                window.location.reload();
-            });
-    }
+            callApi(`/api/localaccount`,
+                'POST',
+                newValue,
+                (resp) => {
+                    document.querySelector('#new-account-form').reset();
+                    editAccountModal.hide();
+                    window.location.reload();
+                });
+        }
 
-    function handleResetPasswordFormSubmit(event) {
-        event.preventDefault();
+        window.handleResetPasswordFormSubmit = function (event) {
+            event.preventDefault();
 
-        const data = new FormData(event.target);
-        const value = Object.fromEntries(data.entries());
+            const data = new FormData(event.target);
+            const value = Object.fromEntries(data.entries());
 
-        callApi(`/api/localaccount/${cid}/password`,
-            'PUT',
-            value["NewPassword"],
-            (resp) => {
-                document.querySelector('#resetpassword-form').reset();
-                resetPasswordModal.hide();
-                blogToast.success('Password updated.');
-                cid = '';
-            });
-    }
+            callApi(`/api/localaccount/${cid}/password`,
+                'PUT',
+                value["NewPassword"],
+                (resp) => {
+                    document.querySelector('#resetpassword-form').reset();
+                    resetPasswordModal.hide();
+                    blogToast.success('Password updated.');
+                    cid = '';
+                });
+        }
 
-    const newAccountForm = document.querySelector('#new-account-form');
-    newAccountForm.addEventListener('submit', handleNewAccountFormSubmit);
+        const newAccountForm = document.querySelector('#new-account-form');
+        newAccountForm.addEventListener('submit', handleNewAccountFormSubmit);
 
-    const resetPasswordForm = document.querySelector('#resetpassword-form');
-    resetPasswordForm.addEventListener('submit', handleResetPasswordFormSubmit);
-</script>
+        const resetPasswordForm = document.querySelector('#resetpassword-form');
+        resetPasswordForm.addEventListener('submit', handleResetPasswordFormSubmit);
+    </script>
 }
 
-<div class="admin-toolbar ps-4 pe-4 pt-2 pb-2 border-bottom mb-3 shadow-sm">
-    <a class="btn btn-outline-accent" href="javascript:initCreateAccount();">
-        <i class="bi-plus-lg"></i>
-        @Localizer["Create"]
-    </a>
-</div>
 
-<div class="ps-4 pe-4">
+@section admintoolbar{
+    <div class="admin-toolbar pb-2 border-bottom mb-3">
+        <a class="btn btn-outline-accent" href="javascript:initCreateAccount();">
+            <i class="bi-plus-lg"></i>
+            @SharedLocalizer["Create"]
+        </a>
+    </div>
+}
+
+
     @if (null != Model.Accounts && Model.Accounts.Any())
     {
         <table class="table table-bordered mt-3">
             <thead>
                 <tr>
-                    <th>@Localizer["Username"]</th>
-                    <th>@Localizer["Last Login IP"]</th>
-                    <th>@Localizer["Last Login Time (UTC)"]</th>
-                    <th>@Localizer["Create Time (UTC)"]</th>
-                    <th>@Localizer["Action"]</th>
+                    <th>@SharedLocalizer["Username"]</th>
+                    <th>@SharedLocalizer["Last Login IP"]</th>
+                    <th>@SharedLocalizer["Last Login Time (UTC)"]</th>
+                    <th>@SharedLocalizer["Create Time (UTC)"]</th>
+                    <th>@SharedLocalizer["Action"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -123,15 +128,14 @@
         </table>
     }
 
-    <p class="text-muted">Check out <a href="https://azure.microsoft.com/en-us/services/active-directory?WT.mc_id=AZ-MVP-5002809">Azure Active Directoy</a> and empower your blog to achieve more!</p>
+    <p class="text-muted">Check out <a href="https://learn.microsoft.com/en-us/azure/active-directory/fundamentals/whatis?WT.mc_id=AZ-MVP-5002809">Microsoft Entra ID</a> and empower your blog to achieve more!</p>
 
-</div>
 
 <div class="modal fade" id="editAccountModal" tabindex="-1" role="dialog" aria-labelledby="editAccountModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editAccountModalLabel">@Localizer["Account Information"]</h5>
+                <h5 class="modal-title" id="editAccountModalLabel">@SharedLocalizer["Account Information"]</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                 </button>
             </div>
@@ -150,8 +154,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-outline-accent btn-submit">@Localizer["Submit"]</button>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@Localizer["Cancel"]</button>
+                    <button type="submit" class="btn btn-outline-accent btn-submit">@SharedLocalizer["Submit"]</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@SharedLocalizer["Cancel"]</button>
                 </div>
             </form>
         </div>
@@ -162,7 +166,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="resetPasswordModalLabel">@Localizer["Reset Password"]</h5>
+                <h5 class="modal-title" id="resetPasswordModalLabel">@SharedLocalizer["Reset Password"]</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                 </button>
             </div>
@@ -182,8 +186,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-outline-accent btn-resetpwd">@Localizer["Submit"]</button>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@Localizer["Cancel"]</button>
+                    <button type="submit" class="btn btn-outline-accent btn-resetpwd">@SharedLocalizer["Submit"]</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@SharedLocalizer["Cancel"]</button>
                 </div>
             </form>
         </div>

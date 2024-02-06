@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Moonglade.Configuration;
 
@@ -18,6 +19,12 @@ public class NotificationSettings : IBlogSettings
     [MaxLength(64)]
     public string EmailDisplayName { get; set; }
 
-    [Display(Name = "Azure Function endpoint")]
-    public string AzureFunctionEndpoint { get; set; }
+    [JsonIgnore]
+    public static NotificationSettings DefaultValue => new()
+    {
+        EnableEmailSending = false,
+        SendEmailOnCommentReply = false,
+        SendEmailOnNewComment = false,
+        EmailDisplayName = "Moonglade"
+    };
 }

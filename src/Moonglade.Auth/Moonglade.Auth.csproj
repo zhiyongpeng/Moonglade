@@ -1,27 +1,25 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<Using Include="System.Text" />
-
-		<Using Include="Microsoft.AspNetCore.Mvc" />
-		<Using Include="Microsoft.AspNetCore.Authorization" />
-
-		<Using Include="MediatR" />
-	</ItemGroup>
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<PackageReference Include="MediatR" Version="10.0.1" />
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="6.0.3" />
-		<PackageReference Include="Microsoft.Identity.Web" Version="1.23.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\Moonglade.Data\Moonglade.Data.csproj" />
-		<ProjectReference Include="..\Moonglade.Utils\Moonglade.Utils.csproj" />
-	</ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Moonglade.Auth</AssemblyName>
+    <RootNamespace>Moonglade.Auth</RootNamespace>
+    <IsTestProject>false</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="System.Text" />
+    <Using Include="Microsoft.AspNetCore.Mvc" />
+    <Using Include="Microsoft.AspNetCore.Authorization" />
+    <Using Include="MediatR" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="2.16.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Moonglade.Data\Moonglade.Data.csproj" />
+    <ProjectReference Include="..\Moonglade.Utils\Moonglade.Utils.csproj" />
+  </ItemGroup>
 </Project>

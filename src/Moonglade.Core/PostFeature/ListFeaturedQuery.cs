@@ -5,20 +5,14 @@ namespace Moonglade.Core.PostFeature;
 
 public record ListFeaturedQuery(int PageSize, int PageIndex) : IRequest<IReadOnlyList<PostDigest>>;
 
-public class ListFeaturedQueryHandler : IRequestHandler<ListFeaturedQuery, IReadOnlyList<PostDigest>>
+public class ListFeaturedQueryHandler(IRepository<PostEntity> repo) : IRequestHandler<ListFeaturedQuery, IReadOnlyList<PostDigest>>
 {
-    private readonly IRepository<PostEntity> _postRepo;
-
-    public ListFeaturedQueryHandler(IRepository<PostEntity> postRepo)
+    public Task<IReadOnlyList<PostDigest>> Handle(ListFeaturedQuery request, CancellationToken ct)
     {
-        _postRepo = postRepo;
-    }
+        var (pageSize, pageIndex) = request;
+        Helper.ValidatePagingParameters(pageSize, pageIndex);
 
-    public Task<IReadOnlyList<PostDigest>> Handle(ListFeaturedQuery request, CancellationToken cancellationToken)
-    {
-        Helper.ValidatePagingParameters(request.PageSize, request.PageIndex);
-
-        var posts = _postRepo.SelectAsync(new FeaturedPostSpec(request.PageSize, request.PageIndex), PostDigest.EntitySelector);
+        var posts = repo.SelectAsync(new FeaturedPostSpec(pageSize, pageIndex), PostDigest.EntitySelector, ct);
         return posts;
     }
 }

@@ -2,34 +2,35 @@
 
 public record UpdatePageCommand(Guid Id, EditPageRequest Payload) : IRequest<Guid>;
 
-public class UpdatePageCommandHandler : IRequestHandler<UpdatePageCommand, Guid>
+public class UpdatePageCommandHandler(IRepository<PageEntity> repo, IMediator mediator) : IRequestHandler<UpdatePageCommand, Guid>
 {
-    private readonly IRepository<PageEntity> _pageRepo;
-
-    public UpdatePageCommandHandler(IRepository<PageEntity> pageRepo)
-    {
-        _pageRepo = pageRepo;
-    }
-
-    public async Task<Guid> Handle(UpdatePageCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(UpdatePageCommand request, CancellationToken ct)
     {
         var (guid, payload) = request;
-        var page = await _pageRepo.GetAsync(guid);
+        var page = await repo.GetAsync(guid, ct);
         if (page is null)
         {
             throw new InvalidOperationException($"PageEntity with Id '{guid}' not found.");
         }
 
+        var slug = request.Payload.Slug.ToLower().Trim();
+
+        Guid? cssId = null;
+        if (!string.IsNullOrWhiteSpace(request.Payload.CssContent))
+        {
+            cssId = await mediator.Send(new SaveStyleSheetCommand(page.Id, slug, request.Payload.CssContent), ct);
+        }
+
         page.Title = payload.Title.Trim();
-        page.Slug = payload.Slug.ToLower().Trim();
+        page.Slug = slug;
         page.MetaDescription = payload.MetaDescription;
         page.HtmlContent = payload.RawHtmlContent;
-        page.CssContent = payload.CssContent;
         page.HideSidebar = payload.HideSidebar;
         page.UpdateTimeUtc = DateTime.UtcNow;
         page.IsPublished = payload.IsPublished;
+        page.CssId = cssId.ToString();
 
-        await _pageRepo.UpdateAsync(page);
+        await repo.UpdateAsync(page, ct);
 
         return page.Id;
     }

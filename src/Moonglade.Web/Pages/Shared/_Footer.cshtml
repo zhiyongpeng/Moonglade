@@ -1,9 +1,9 @@
 ﻿@using Microsoft.AspNetCore.Builder
 @using Moonglade.Utils
 
-@inject IOptions<RequestLocalizationOptions> _locOptions
+@inject IOptions<RequestLocalizationOptions> LocOptions
 @{
-    var cultureItems = _locOptions.Value.SupportedUICultures
+    var cultureItems = LocOptions.Value.SupportedUICultures
         .Select(c => new { Value = c.Name, c.NativeName });
     var returnUrl = string.IsNullOrEmpty(Context.Request.Path) ? "~/" : $"~{Context.Request.Path.Value}";
 }
@@ -16,17 +16,8 @@
                     @Html.Raw(Helper.FormatCopyright2Html(BlogConfig.GeneralSettings.Copyright))
                 </div>
                 <small>
-                    Powered by <a href="https://moonglade.blog" target="_blank">Moonglade</a> @Helper.AppVersion
+                    Powered by <a href="https://github.com/EdiWang/Moonglade" target="_blank">Moonglade</a> @Helper.AppVersion
                 </small>
-
-                @if (BlogConfig.GeneralSettings.Pride)
-                {
-                    <div class="mt-2">
-                        <a href="https://en.wikipedia.org/wiki/WorldPride" target="_blank">
-                            <img src="~/images/rainbow-flag.svg" alt="Pride" width="24" />
-                        </a>
-                    </div>
-                }
             </section>
 
             @Html.Raw(BlogConfig.GeneralSettings.FooterCustomizedHtmlPitch)
@@ -42,8 +33,8 @@
                 </ul>
             </section>
 
-            <section id="footer-language-mobile" class="col-3 d-block d-md-none text-end font-125rem">
-                <a href="#" data-bs-toggle="modal" data-bs-target="#langselectormodal"><i class="bi-globe"></i></a>
+            <section id="footer-language-mobile" class="col d-block d-md-none text-end font-125rem">
+                <a href="#" data-bs-toggle="modal" data-bs-target="#langselectormodal" aria-label="Choose display language"><i class="bi-globe"></i></a>
             </section>
         </div>
     </div>

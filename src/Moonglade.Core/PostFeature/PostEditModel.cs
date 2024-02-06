@@ -5,7 +5,7 @@ namespace Moonglade.Core.PostFeature;
 public class PostEditModel
 {
     [HiddenInput]
-    public Guid PostId { get; set; }
+    public Guid PostId { get; set; } = Guid.Empty;
 
     [Required]
     [MaxLength(128)]
@@ -20,8 +20,6 @@ public class PostEditModel
     [MaxLength(64)]
     public string Author { get; set; }
 
-    [Required]
-    [MinLength(1)]
     public Guid[] SelectedCatIds { get; set; }
 
     [Required]
@@ -48,8 +46,7 @@ public class PostEditModel
     public string Tags { get; set; }
 
     [Required]
-    [Display(Name = "Content Language")]
-    [RegularExpression("^[a-z]{2}-[a-zA-Z]{2}$")]
+    [RegularExpression("^[a-z]{2}-[a-zA-Z]{2,4}$")]
     public string LanguageCode { get; set; }
 
     [DataType(DataType.MultilineText)]
@@ -63,9 +60,6 @@ public class PostEditModel
     [Display(Name = "Change Publish Date")]
     public bool ChangePublishDate { get; set; }
 
-    [Display(Name = "Original")]
-    public bool IsOriginal { get; set; }
-
     [Display(Name = "Origin Link")]
     [DataType(DataType.Url)]
     public string OriginLink { get; set; }
@@ -74,13 +68,8 @@ public class PostEditModel
     [DataType(DataType.Url)]
     public string HeroImageUrl { get; set; }
 
-    [Display(Name = "Inline CSS")]
-    [MaxLength(2048)]
-    public string InlineCss { get; set; }
+    [Display(Name = "Mark as outdated")]
+    public bool IsOutdated { get; set; }
 
-    public PostEditModel()
-    {
-        PostId = Guid.Empty;
-        IsOriginal = true;
-    }
+    public bool WarnSlugModification => PublishDate.HasValue && (DateTime.UtcNow - PublishDate.Value).Days > 7;
 }

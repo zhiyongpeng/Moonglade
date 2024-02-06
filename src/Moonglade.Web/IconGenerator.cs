@@ -17,19 +17,20 @@ public static class MemoryStreamIconGenerator
         {
             logger.LogWarning("SiteIconBase64 is empty or not valid, fall back to default image.");
 
-            var defaultImagePath = Path.Join($"{webRootPath}", "images", "siteicon-default.png");
-            if (!File.Exists(defaultImagePath))
+            // Credit: Vector Market (siteicon-default.png)
+            var defaultIconImage = Path.Join($"{webRootPath}", "images", "siteicon-default.png");
+            if (!File.Exists(defaultIconImage))
             {
-                throw new FileNotFoundException("Can not find source image for generating favicons.", defaultImagePath);
+                throw new FileNotFoundException("Can not find source image for generating favicons.", defaultIconImage);
             }
 
-            var ext = Path.GetExtension(defaultImagePath);
+            var ext = Path.GetExtension(defaultIconImage);
             if (ext is not null && ext.ToLower() is not ".png")
             {
                 throw new FormatException("Source file is not an PNG image.");
             }
 
-            buffer = File.ReadAllBytes(defaultImagePath);
+            buffer = File.ReadAllBytes(defaultIconImage);
         }
         else
         {
@@ -45,9 +46,9 @@ public static class MemoryStreamIconGenerator
 
         var dic = new Dictionary<string, int[]>
         {
-            { "android-icon-", new[] { 36, 48, 72, 96, 144, 192 } },
+            { "android-icon-", new[] { 144, 192 } },
             { "favicon-", new[] { 16, 32, 96 } },
-            { "apple-icon-", new[] { 57, 60, 72, 76, 114, 120, 144, 152, 180 } }
+            { "apple-icon-", new[] { 180 } }
         };
 
         foreach (var (key, value) in dic)
@@ -61,17 +62,14 @@ public static class MemoryStreamIconGenerator
             }
         }
 
-        var icon1Bytes = ResizeImage(image, 192, 192);
+        var icon1Bytes = ResizeImage(image, 180, 180);
         SiteIconDictionary.TryAdd("apple-icon.png", icon1Bytes);
-
-        var icon2Bytes = ResizeImage(image, 192, 192);
-        SiteIconDictionary.TryAdd("apple-icon-precomposed.png", icon2Bytes);
     }
 
     public static byte[] GetIcon(string fileName)
     {
         if (string.IsNullOrWhiteSpace(fileName)) return null;
-        return SiteIconDictionary.ContainsKey(fileName) ? SiteIconDictionary[fileName] : null;
+        return SiteIconDictionary.GetValueOrDefault(fileName);
     }
 
     private static byte[] ResizeImage(Image image, int toWidth, int toHeight)

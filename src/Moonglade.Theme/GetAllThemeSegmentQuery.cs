@@ -6,21 +6,14 @@ namespace Moonglade.Theme;
 
 public record GetAllThemeSegmentQuery : IRequest<IReadOnlyList<ThemeSegment>>;
 
-public class GetAllThemeSegmentQueryHandler : IRequestHandler<GetAllThemeSegmentQuery, IReadOnlyList<ThemeSegment>>
+public class GetAllThemeSegmentQueryHandler(IRepository<BlogThemeEntity> repo) : IRequestHandler<GetAllThemeSegmentQuery, IReadOnlyList<ThemeSegment>>
 {
-    private readonly IRepository<BlogThemeEntity> _themeRepo;
-
-    public GetAllThemeSegmentQueryHandler(IRepository<BlogThemeEntity> themeRepo)
+    public Task<IReadOnlyList<ThemeSegment>> Handle(GetAllThemeSegmentQuery request, CancellationToken ct)
     {
-        _themeRepo = themeRepo;
-    }
-
-    public Task<IReadOnlyList<ThemeSegment>> Handle(GetAllThemeSegmentQuery request, CancellationToken cancellationToken)
-    {
-        return _themeRepo.SelectAsync(p => new ThemeSegment
+        return repo.SelectAsync(p => new ThemeSegment
         {
             Id = p.Id,
             Name = p.ThemeName
-        });
+        }, ct);
     }
 }

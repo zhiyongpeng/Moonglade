@@ -1,52 +1,57 @@
 ﻿@using Moonglade.Utils
-@inject Microsoft.ApplicationInsights.AspNetCore.JavaScriptSnippet _javaScriptSnippet
-@inject IHttpContextAccessor _httpContextAccessor
-@inject IWebHostEnvironment _webHostEnvironment
+@using Microsoft.AspNetCore.Localization
+@using System.Globalization
+
 @{
     if (string.IsNullOrEmpty(BlogConfig.GeneralSettings.AvatarUrl))
     {
         BlogConfig.GeneralSettings.AvatarUrl = Url.Action("Avatar", "Assets");
     }
+
+    // Resolve culture
+    // Post language > User set display language > System default language
+    var langCode = BlogConfig.GeneralSettings.DefaultLanguageCode;
+    if (ViewBag.PostLangCode != null)
+    {
+        langCode = ViewBag.PostLangCode;
+    }
+    else
+    {
+        // CultureInfo.CurrentUICulture always has value, can not determine if is user selection
+        var cultureCookie = Context.Request.Cookies[CookieRequestCultureProvider.DefaultCookieName];
+        if (cultureCookie != null)
+        {
+            langCode = CultureInfo.CurrentUICulture.ToString().ToLower();
+        }
+    }
 }
 <!DOCTYPE html>
-<html>
-<head>
+<html lang="@langCode">
+<head profile=@(BlogConfig.GeneralSettings.UseDublinCoreMetaData ? "http://dublincore.org/documents/dcq-html/" : null)>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    @if (IsSectionDefined("keywords"))
+    @if (BlogConfig.GeneralSettings.UseDublinCoreMetaData)
     {
-        @await RenderSectionAsync("keywords", false)
+        <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/" />
+        <link rel="schema.DCTERMS" href="http://purl.org/dc/terms/" />
     }
-    else
-    {
-        <meta name="keywords" content="@Html.Raw(BlogConfig.GeneralSettings.MetaKeyword)" />
-    }
+
+    <meta name="keywords" content="@(ViewBag.Keywords ?? Html.Raw(BlogConfig.GeneralSettings.MetaKeyword))" />
 
     @await RenderSectionAsync("meta", false)
-    @if (BlogConfig.AdvancedSettings.EnableOpenGraph)
+    @if (IsSectionDefined("opengraph"))
     {
-        @if (IsSectionDefined("opengraph"))
-        {
-            @await RenderSectionAsync("opengraph", false)
-        }
-        else
-        {
-            <partial name="_OpenGraph" />
-
-        }
-    }
-
-    @if (IsSectionDefined("metadescription"))
-    {
-        @await RenderSectionAsync("metadescription", false)
+        @await RenderSectionAsync("opengraph", false)
     }
     else
     {
-        <metadesc description="@BlogConfig.GeneralSettings.Description" />
+        <partial name="_OpenGraph" />
     }
 
+    <metadesc description="@(ViewBag.MetaDescription ?? BlogConfig.GeneralSettings.Description)" />
+
     <title>
-        @(ViewBag?.TitlePrefix)@(null == ViewBag?.TitlePrefix ? string.Empty : " - ")@BlogConfig.GeneralSettings.SiteTitle
+        @(ViewBag.TitlePrefix)@(null == ViewBag.TitlePrefix ? string.Empty : " - ")@BlogConfig.GeneralSettings.SiteTitle
     </title>
 
     @if (BlogConfig.ImageSettings.EnableCDNRedirect &&
@@ -61,7 +66,7 @@
     }
 
     <link rel="start" title="@BlogConfig.GeneralSettings.SiteTitle" href="~/" />
-    <rss title="@BlogConfig.FeedSettings.RssTitle" href="@Url.Action("Rss", "Subscription")" />
+    <rss title="@BlogConfig.GeneralSettings.SiteTitle" href="@Url.Action("Rss", "Subscription")" />
     @if (BlogConfig.AdvancedSettings.EnableOpenSearch)
     {
         <opensearch href="/opensearch" title="@BlogConfig.GeneralSettings.SiteTitle" />
@@ -71,48 +76,35 @@
     {
         <rsd href="/rsd" />
     }
-    <feature name="Foaf">
+    @if (BlogConfig.AdvancedSettings.EnableFoaf)
+    {
         <foaf href="/foaf.xml" />
-    </feature>
+    }
     <partial name="_Favicons" />
     <link href="~/lib/twitter-bootstrap/css/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
-    <link href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet" />
-    <environment exclude="Development">
-        <link href="~/css/bundle.min.css" rel="stylesheet" asp-append-version="true" />
-    </environment>
-    <environment include="Development">
-        <link href="~/css/src/fonts.css" rel="stylesheet" />
-        <link href="~/css/src/base.css" rel="stylesheet" />
-        <link href="~/css/src/rwd.css" rel="stylesheet" />
-        <link href="~/css/src/navigation.css" rel="stylesheet" />
-        <link href="~/css/src/timeline.css" rel="stylesheet" />
-        <link href="~/css/src/post-slug.css" rel="stylesheet" />
-        <link href="~/css/src/darkmode.css" rel="stylesheet" />
-        <link href="~/css/src/highlighter-custom.css" rel="stylesheet" />
-    </environment>
+    <link href="~/lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/fonts/font.css" rel="stylesheet" />
+    <link href="~/css/base.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/rwd.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/darkmode.css" rel="stylesheet" asp-append-version="true" />
     @await RenderSectionAsync("head", false)
     <link href="~/theme.css" rel="stylesheet" asp-append-version="true" />
     @if (BlogConfig.CustomStyleSheetSettings.EnableCustomCss)
     {
-        <link href="~/custom.css" rel="stylesheet" asp-append-version="true" />
+        <link href="~/custom.css" rel="stylesheet" />
     }
+    <script src="~/js/3rd/jquery.slim.min.js"></script>
+
     <environment include="Production">
-        @if (!(bool)Context.Items["DNT"])
+        @if (!(bool)Context.Items["DNT"]!)
         {
-            @Html.Raw(_javaScriptSnippet.FullScript)
+            <partial name="_ApplicationInsightsJs" />
         }
     </environment>
-    <script src="~/lib/jquery/jquery.min.js" asp-append-version="true"></script>
-    @if (BlogConfig.GeneralSettings.Pride)
-    {
-        <style>
-            body {
-                cursor: url('/images/pride-heart-24.svg'), auto;
-            }
-        </style>
-    }
 </head>
 <body class="@ViewBag.BodyClass">
+    <partial name="_EnvInfo" />
+
     @if (BlogConfig.ContentSettings.ShowCalloutSection)
     {
         <section class="call-out">
@@ -134,33 +126,27 @@
                 <div class="collapse navbar-collapse" id="blog-navbar-content">
                     <ul class="navbar-nav me-auto">
                         <!-- System Nav Menu -->
-                        <feature name="Menu_Categories">
-                            <li id="navbar-dropdown-post" class="nav-item dropdown">
-                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown">
-                                    <i class="bi-folder2 nav-item-icon"></i>
-                                    <strong>@Localizer["Categories"]</strong>
-                                </a>
-                                @await Component.InvokeAsync("CategoryList", new { isMenu = true })
-                            </li>
-                        </feature>
+                        <li id="navbar-dropdown-post" class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown">
+                                <i class="bi-folder2 nav-item-icon"></i>
+                                <strong>@SharedLocalizer["Categories"]</strong>
+                            </a>
+                            @await Component.InvokeAsync("CategoryList", new { isMenu = true })
+                        </li>
 
-                        <feature name="Menu_Tags">
-                            <li class="nav-item">
-                                <a asp-page="/Tags" class="nav-link">
-                                    <i class="bi-tag nav-item-icon"></i>
-                                    <strong>@Localizer["Tags"]</strong>
-                                </a>
-                            </li>
-                        </feature>
+                        <li class="nav-item">
+                            <a asp-page="/Tags" class="nav-link">
+                                <i class="bi-tag nav-item-icon"></i>
+                                <strong>@SharedLocalizer["Tags"]</strong>
+                            </a>
+                        </li>
 
-                        <feature name="Menu_Archive">
-                            <li class="nav-item">
-                                <a asp-page="/Archive" class="nav-link">
-                                    <i class="bi-calendar3 nav-item-icon"></i>
-                                    <strong>@Localizer["Archive"]</strong>
-                                </a>
-                            </li>
-                        </feature>
+                        <li class="nav-item">
+                            <a asp-page="/Archive" class="nav-link">
+                                <i class="bi-calendar3 nav-item-icon"></i>
+                                <strong>@SharedLocalizer["Archive"]</strong>
+                            </a>
+                        </li>
 
                         @await Component.InvokeAsync("Menu")
                     </ul>
@@ -169,12 +155,12 @@
                                class="form-control bg-transparent me-sm-2"
                                type="search"
                                value=""
-                               title="@Localizer["Search"]"
+                               title="@SharedLocalizer["Search"]"
                                aria-label="Search"
-                               placeholder="@Localizer["Search"]"
+                               placeholder="@SharedLocalizer["Search"]"
                                name="term"
                                maxlength="30">
-                        <button class="btn btn-outline-light btn-search my-sm-0" type="submit"><i class="bi-search"></i></button>
+                        <button class="btn btn-outline-light btn-search my-sm-0" type="submit" title="Search"><i class="bi-search"></i></button>
                     </form>
                 </div>
             </div>
@@ -184,7 +170,9 @@
     <div id="page-content" class="content">
         @if (null != ViewBag.HideSideBar && ViewBag.HideSideBar)
         {
-            @RenderBody()
+            <main>
+                @RenderBody()
+            </main>
         }
         else
         {
@@ -196,12 +184,12 @@
                     <div class="row">
                         <div class="col-3">
                             <img src="@BlogConfig.GeneralSettings.AvatarUrl"
-                             alt="@BlogConfig.GeneralSettings.OwnerName"
-                             class="rounded-circle blogger-head-pic" />
+                                 alt="@BlogConfig.GeneralSettings.OwnerName"
+                                 class="rounded-circle blogger-head-pic" />
                         </div>
-                        <div class="col-9">
-                            <h4 class="text-center">
-                                @BlogConfig.GeneralSettings.ShortDescription
+                        <div class="col-9 position-relative">
+                            <h4 class="text-center w-100 position-absolute top-50 start-50 translate-middle">
+                                @BlogConfig.GeneralSettings.Description
                             </h4>
                         </div>
                     </div>
@@ -214,9 +202,9 @@
                         <partial name="_Aside" />
                     }
 
-                    <section class="col-md-12 @(BlogConfig.GeneralSettings.SideBarOption == SideBarOption.Disabled ? null : "col-lg-9")">
+                    <main class="col-md-12 @(BlogConfig.GeneralSettings.SideBarOption == SideBarOption.Disabled ? null : "col-lg-9")">
                         @RenderBody()
-                    </section>
+                    </main>
 
                     @if (BlogConfig.GeneralSettings.SideBarOption == SideBarOption.Right)
                     {
@@ -228,33 +216,33 @@
     </div>
     <div class="clearfix"></div>
     <partial name="_Footer" />
-    <partial name="_EnvInfo" />
     <partial name="_Toast" />
 
     <script src="~/lib/twitter-bootstrap/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
-    <environment exclude="Development">
-        <script src="~/js/dist/app-bundle.min.js" asp-append-version="true"></script>
-    </environment>
-    <environment include="Development">
-        <script src="~/js/app/base.js"></script>
-        <script src="~/js/app/postslug.js"></script>
-        <script src="~/js/app/httpService.js"></script>
-        <script src="~/js/app/comments.js"></script>
-        <script src="~/js/app/theme.js"></script>
-    </environment>
+    <script type="module" src="~/js/app/base.js" asp-append-version="true"></script>
+    <script src="~/js/app/httpService.js" asp-append-version="true"></script>
 
     @if (BlogConfig.GeneralSettings.AutoDarkLightTheme && (ViewBag.DisableLightSwitch == null || !ViewBag.DisableLightSwitch))
     {
-        <script>
-            if (window.matchMedia && window.themeModeSwitcher) {
+        <script type="module">
+            import * as theme from '/js/app/theme.module.js'
+            window.theme = theme;
+
+            if (window.matchMedia && window.theme) {
                 if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    themeModeSwitcher.useDarkMode();
+                    theme.useDarkMode();
                 } else {
-                    themeModeSwitcher.useLightMode();
+                    theme.useLightMode();
                 }
             }
         </script>
     }
+
     @await RenderSectionAsync("scripts", false)
+
+    @if (!string.IsNullOrWhiteSpace(BlogConfig.AdvancedSettings.FootScripts))
+    {
+        @Html.Raw(BlogConfig.AdvancedSettings.FootScripts)
+    }
 </body>
 </html>

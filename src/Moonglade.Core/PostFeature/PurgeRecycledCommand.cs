@@ -1,32 +1,21 @@
-﻿using Moonglade.Caching;
+﻿using Edi.CacheAside.InMemory;
 using Moonglade.Data.Spec;
 
 namespace Moonglade.Core.PostFeature;
 
 public record PurgeRecycledCommand : IRequest;
 
-public class PurgeRecycledCommandHandler : IRequestHandler<PurgeRecycledCommand>
+public class PurgeRecycledCommandHandler(ICacheAside cache, IRepository<PostEntity> repo) : IRequestHandler<PurgeRecycledCommand>
 {
-    private readonly IBlogCache _cache;
-    private readonly IRepository<PostEntity> _postRepo;
-
-    public PurgeRecycledCommandHandler(IBlogCache cache, IRepository<PostEntity> postRepo)
-    {
-        _cache = cache;
-        _postRepo = postRepo;
-    }
-
-    public async Task<Unit> Handle(PurgeRecycledCommand request, CancellationToken cancellationToken)
+    public async Task Handle(PurgeRecycledCommand request, CancellationToken ct)
     {
         var spec = new PostSpec(true);
-        var posts = await _postRepo.GetAsync(spec);
-        await _postRepo.DeleteAsync(posts);
+        var posts = await repo.ListAsync(spec);
+        await repo.DeleteAsync(posts, ct);
 
         foreach (var guid in posts.Select(p => p.Id))
         {
-            _cache.Remove(CacheDivision.Post, guid.ToString());
+            cache.Remove(BlogCachePartition.Post.ToString(), guid.ToString());
         }
-
-        return Unit.Value;
     }
 }

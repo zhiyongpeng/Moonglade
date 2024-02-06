@@ -2,37 +2,19 @@
 using Moonglade.Core.PageFeature;
 using Moonglade.Core.PostFeature;
 using Moonglade.Core.TagFeature;
-using WilderMinds.MetaWeblog;
-using Post = WilderMinds.MetaWeblog.Post;
-using Tag = WilderMinds.MetaWeblog.Tag;
+using Moonglade.MetaWeblog;
+using Post = Moonglade.MetaWeblog.Post;
+using Tag = Moonglade.MetaWeblog.Tag;
 
 namespace Moonglade.Web;
 
-public class MetaWeblogService : IMetaWeblogProvider
-{
-    private readonly IBlogConfig _blogConfig;
-    private readonly ITimeZoneResolver _timeZoneResolver;
-    private readonly ILogger<MetaWeblogService> _logger;
-    private readonly IBlogImageStorage _blogImageStorage;
-    private readonly IFileNameGenerator _fileNameGenerator;
-    private readonly IMediator _mediator;
-
-    public MetaWeblogService(
-        IBlogConfig blogConfig,
-        ITimeZoneResolver timeZoneResolver,
+public class MetaWeblogService(IBlogConfig blogConfig,
         ILogger<MetaWeblogService> logger,
         IBlogImageStorage blogImageStorage,
         IFileNameGenerator fileNameGenerator,
         IMediator mediator)
-    {
-        _blogConfig = blogConfig;
-        _timeZoneResolver = timeZoneResolver;
-        _logger = logger;
-        _blogImageStorage = blogImageStorage;
-        _fileNameGenerator = fileNameGenerator;
-        _mediator = mediator;
-    }
-
+    : IMetaWeblogProvider
+{
     public Task<UserInfo> GetUserInfoAsync(string key, string username, string password)
     {
         EnsureUser(username, password);
@@ -41,11 +23,11 @@ public class MetaWeblogService : IMetaWeblogProvider
         {
             var user = new UserInfo
             {
-                email = _blogConfig.GeneralSettings.OwnerEmail,
-                firstname = _blogConfig.GeneralSettings.OwnerName,
+                email = blogConfig.GeneralSettings.OwnerEmail,
+                firstname = blogConfig.GeneralSettings.OwnerName,
                 lastname = string.Empty,
                 nickname = string.Empty,
-                url = _blogConfig.GeneralSettings.CanonicalPrefix,
+                url = blogConfig.GeneralSettings.CanonicalPrefix,
                 userid = key
             };
 
@@ -61,8 +43,8 @@ public class MetaWeblogService : IMetaWeblogProvider
         {
             var blog = new BlogInfo
             {
-                blogid = _blogConfig.GeneralSettings.SiteTitle,
-                blogName = _blogConfig.GeneralSettings.SiteTitle,
+                blogid = blogConfig.GeneralSettings.SiteTitle,
+                blogName = blogConfig.GeneralSettings.SiteTitle,
                 url = "/"
             };
 
@@ -81,7 +63,7 @@ public class MetaWeblogService : IMetaWeblogProvider
                 throw new ArgumentException("Invalid ID", nameof(postid));
             }
 
-            var post = await _mediator.Send(new GetPostByIdQuery(id));
+            var post = await mediator.Send(new GetPostByIdQuery(id));
             return ToMetaWeblogPost(post);
         });
     }
@@ -126,7 +108,7 @@ public class MetaWeblogService : IMetaWeblogProvider
                 PublishDate = DateTime.UtcNow
             };
 
-            var p = await _mediator.Send(new CreatePostCommand(req));
+            var p = await mediator.Send(new CreatePostCommand(req));
             return p.Id.ToString();
         });
     }
@@ -142,7 +124,7 @@ public class MetaWeblogService : IMetaWeblogProvider
                 throw new ArgumentException("Invalid ID", nameof(postid));
             }
 
-            await _mediator.Send(new DeletePostCommand(id, publish));
+            await mediator.Send(new DeletePostCommand(id, publish));
             return true;
         });
     }
@@ -178,7 +160,7 @@ public class MetaWeblogService : IMetaWeblogProvider
                 PublishDate = DateTime.UtcNow
             };
 
-            await _mediator.Send(new UpdatePostCommand(id, req));
+            await mediator.Send(new UpdatePostCommand(id, req));
             return true;
         });
     }
@@ -189,7 +171,7 @@ public class MetaWeblogService : IMetaWeblogProvider
 
         return TryExecuteAsync(async () =>
         {
-            var cats = await _mediator.Send(new GetCategoriesQuery());
+            var cats = await mediator.Send(new GetCategoriesQuery());
             var catInfos = cats.Select(p => new CategoryInfo
             {
                 title = p.DisplayName,
@@ -209,7 +191,7 @@ public class MetaWeblogService : IMetaWeblogProvider
 
         return TryExecuteAsync(async () =>
         {
-            await _mediator.Send(new CreateCategoryCommand
+            await mediator.Send(new CreateCategoryCommand
             {
                 DisplayName = category.name.Trim(),
                 RouteName = category.slug.ToLower(),
@@ -226,7 +208,7 @@ public class MetaWeblogService : IMetaWeblogProvider
 
         return TryExecuteAsync(async () =>
         {
-            var names = await _mediator.Send(new GetTagNamesQuery());
+            var names = await mediator.Send(new GetTagNamesQuery());
             var tags = names.Select(p => new Tag
             {
                 name = p
@@ -246,10 +228,10 @@ public class MetaWeblogService : IMetaWeblogProvider
 
             var bits = Convert.FromBase64String(mediaObject.bits);
 
-            var pFilename = _fileNameGenerator.GetFileName(mediaObject.name);
-            var filename = await _blogImageStorage.InsertAsync(pFilename, bits);
+            var pFilename = fileNameGenerator.GetFileName(mediaObject.name);
+            var filename = await blogImageStorage.InsertAsync(pFilename, bits);
 
-            var imageUrl = $"{Helper.ResolveRootUrl(null, _blogConfig.GeneralSettings.CanonicalPrefix, true)}image/{filename}";
+            var imageUrl = $"{Helper.ResolveRootUrl(null, blogConfig.GeneralSettings.CanonicalPrefix, true)}image/{filename}";
 
             var objectInfo = new MediaObjectInfo { url = imageUrl };
             return objectInfo;
@@ -267,7 +249,7 @@ public class MetaWeblogService : IMetaWeblogProvider
                 throw new ArgumentException("Invalid ID", nameof(pageid));
             }
 
-            var page = await _mediator.Send(new GetPageByIdQuery(id));
+            var page = await mediator.Send(new GetPageByIdQuery(id));
             return ToMetaWeblogPage(page);
         });
     }
@@ -280,7 +262,7 @@ public class MetaWeblogService : IMetaWeblogProvider
         {
             if (numPages < 0) throw new ArgumentOutOfRangeException(nameof(numPages));
 
-            var pages = await _mediator.Send(new GetPagesQuery(numPages));
+            var pages = await mediator.Send(new GetPagesQuery(numPages));
             var mPages = pages.Select(ToMetaWeblogPage);
 
             return mPages.ToArray();
@@ -298,7 +280,7 @@ public class MetaWeblogService : IMetaWeblogProvider
             {
                 new Author
                 {
-                    display_name = _blogConfig.GeneralSettings.OwnerName
+                    display_name = blogConfig.GeneralSettings.OwnerName
                 }
             };
         });
@@ -321,7 +303,7 @@ public class MetaWeblogService : IMetaWeblogProvider
                 Slug = ToSlug(page.title)
             };
 
-            var uid = await _mediator.Send(new CreatePageCommand(pageRequest));
+            var uid = await mediator.Send(new CreatePageCommand(pageRequest));
             return uid.ToString();
         });
     }
@@ -348,7 +330,7 @@ public class MetaWeblogService : IMetaWeblogProvider
                 Slug = ToSlug(page.title)
             };
 
-            await _mediator.Send(new UpdatePageCommand(id, pageRequest));
+            await mediator.Send(new UpdatePageCommand(id, pageRequest));
             return true;
         });
     }
@@ -364,7 +346,7 @@ public class MetaWeblogService : IMetaWeblogProvider
                 throw new ArgumentException("Invalid ID", nameof(pageid));
             }
 
-            await _mediator.Send(new DeletePageCommand(id));
+            await mediator.Send(new DeletePageCommand(id));
             return true;
         });
     }
@@ -379,7 +361,7 @@ public class MetaWeblogService : IMetaWeblogProvider
         var pwdHash = Helper.HashPassword(password.Trim());
 
         if (string.Compare(username.Trim(), "moonglade", StringComparison.Ordinal) == 0 &&
-            string.Compare(pwdHash, _blogConfig.AdvancedSettings.MetaWeblogPasswordHash.Trim(), StringComparison.Ordinal) == 0) return;
+            string.Compare(pwdHash, blogConfig.AdvancedSettings.MetaWeblogPasswordHash.Trim(), StringComparison.Ordinal) == 0) return;
 
         throw new MetaWeblogException("Authentication failed.");
     }
@@ -407,15 +389,15 @@ public class MetaWeblogService : IMetaWeblogProvider
         {
             postid = post.Id,
             categories = post.Categories.Select(p => p.DisplayName).ToArray(),
-            dateCreated = _timeZoneResolver.ToTimeZone(post.CreateTimeUtc),
+            dateCreated = post.CreateTimeUtc,
             description = post.ContentAbstract,
             link = link,
-            permalink = $"{Helper.ResolveRootUrl(null, _blogConfig.GeneralSettings.CanonicalPrefix, true)}/{link}",
+            permalink = $"{Helper.ResolveRootUrl(null, blogConfig.GeneralSettings.CanonicalPrefix, true)}/{link}",
             title = post.Title,
             wp_slug = post.Slug,
             mt_keywords = string.Join(',', post.Tags.Select(p => p.DisplayName)),
             mt_excerpt = post.ContentAbstract,
-            userid = _blogConfig.GeneralSettings.OwnerName
+            userid = blogConfig.GeneralSettings.OwnerName
         };
 
         return mPost;
@@ -427,10 +409,10 @@ public class MetaWeblogService : IMetaWeblogProvider
         {
             title = blogPage.Title,
             description = blogPage.RawHtmlContent,
-            dateCreated = _timeZoneResolver.ToTimeZone(blogPage.CreateTimeUtc),
+            dateCreated = blogPage.CreateTimeUtc,
             categories = Array.Empty<string>(),
             page_id = blogPage.Id.ToString(),
-            wp_author_id = _blogConfig.GeneralSettings.OwnerName
+            wp_author_id = blogConfig.GeneralSettings.OwnerName
         };
 
         return mPage;
@@ -438,7 +420,7 @@ public class MetaWeblogService : IMetaWeblogProvider
 
     private async Task<Guid[]> GetCatIds(string[] mPostCategories)
     {
-        var allCats = await _mediator.Send(new GetCategoriesQuery());
+        var allCats = await mediator.Send(new GetCategoriesQuery());
         var cids = (from postCategory in mPostCategories
                     select allCats.FirstOrDefault(category => category.DisplayName == postCategory)
             into cat
@@ -456,7 +438,7 @@ public class MetaWeblogService : IMetaWeblogProvider
         }
         catch (Exception e)
         {
-            _logger.LogError(e, e.Message);
+            logger.LogError(e, e.Message);
             throw new MetaWeblogException(e.Message);
         }
     }
@@ -469,7 +451,7 @@ public class MetaWeblogService : IMetaWeblogProvider
         }
         catch (Exception e)
         {
-            _logger.LogError(e, e.Message);
+            logger.LogError(e, e.Message);
             throw new MetaWeblogException(e.Message);
         }
     }

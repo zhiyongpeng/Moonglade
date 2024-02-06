@@ -7,22 +7,15 @@ namespace Moonglade.Theme;
 
 public record DeleteThemeCommand(int Id) : IRequest<OperationCode>;
 
-public class DeleteThemeCommandHandler : IRequestHandler<DeleteThemeCommand, OperationCode>
+public class DeleteThemeCommandHandler(IRepository<BlogThemeEntity> repo) : IRequestHandler<DeleteThemeCommand, OperationCode>
 {
-    private readonly IRepository<BlogThemeEntity> _themeRepo;
-
-    public DeleteThemeCommandHandler(IRepository<BlogThemeEntity> themeRepo)
+    public async Task<OperationCode> Handle(DeleteThemeCommand request, CancellationToken ct)
     {
-        _themeRepo = themeRepo;
-    }
-
-    public async Task<OperationCode> Handle(DeleteThemeCommand request, CancellationToken cancellationToken)
-    {
-        var theme = await _themeRepo.GetAsync(request.Id);
+        var theme = await repo.GetAsync(request.Id, ct);
         if (null == theme) return OperationCode.ObjectNotFound;
         if (theme.ThemeType == ThemeType.System) return OperationCode.Canceled;
 
-        await _themeRepo.DeleteAsync(request.Id);
+        await repo.DeleteAsync(request.Id, ct);
         return OperationCode.Done;
     }
 }
